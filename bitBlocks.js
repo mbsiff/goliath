@@ -33,6 +33,7 @@
 
     function create(nBlocks) {
         let obj = {};
+        let bitsUsed = 1;
         let blocksUsed = nBlocks;
         let a = new BLOCK_TYPED_ARRAY(nBlocks);
         obj.setBit = function(i, value=1) {
@@ -40,6 +41,9 @@
             const n = i >>> LOG_BLOCK_SIZE;
             if (n < blocksUsed) {
                 if (value) {
+                    if (i > bitsUsed) {
+                        bitsUsed = i + 1;
+                    }
                     a[n] |= (1 << offset);
                 } else {
                     a[n] &= (~ (1 << offset));
@@ -74,6 +78,10 @@
         obj.countBlocks = function () {
             return blocksUsed;
         };
+        // what is below is not quite ready for prime time
+        obj.countBits = function () {
+            return bitsUsed;
+        };
         return obj;
     }
 
@@ -105,8 +113,13 @@
         return bitBlock.countBlocks();
     }
 
+    function countBits(bitBlock) {
+        return bitBlock.countBits();
+    }
+
     exports.makeBits = makeBits;
     exports.countBlocks = countBlocks;
+    exports.countBits = countBits;
     exports.getBlockSize = getBlockSize;
     exports.getBit = getBit;
     exports.setBit = setBit;
