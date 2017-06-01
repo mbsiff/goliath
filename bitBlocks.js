@@ -18,43 +18,99 @@
     const LOG_BLOCK_SIZE = binLog(BITS_PER_BLOCK);
 
 
+    function blockToBitString(x) {
+        let a = [];
+        for(let i = 0; i < BITS_PER_BLOCK; i++) {
+            a.push(x & 1);
+            x = x >>> 1;
+        }
+        return a.join('');
+    }
+
+    function getBlockSize() {
+        return BITS_PER_BLOCK;
+    }
+
+    function create(nBlocks) {
+        let obj = {};
+        let blocksUsed = nBlocks;
+        let a = new BLOCK_TYPED_ARRAY(nBlocks);
+        obj.setBit = function(i, value=1) {
+            const offset = i & BLOCK_MASK;
+            const n = i >>> LOG_BLOCK_SIZE;
+            if (n < blocksUsed) {
+                if (value) {
+                    a[n] |= (1 << offset);
+                } else {
+                    a[n] &= (~ (1 << offset));
+                }
+            } else {
+                throw new RangeError('bit index ' + i + ' is out of bounds');
+            }
+        };
+        obj.getBit = function(i) {
+            const offset = i & BLOCK_MASK;
+            const n = i >>> LOG_BLOCK_SIZE;
+            if (n < a.length && (a[n] & (1 << offset))) {
+                return 1;
+            } else {
+                return 0;
+            }
+        };
+        obj.trim = function() {
+            while(blocksUsed > 1 &&
+                  a[blocksUsed-1] === 0) {
+                blocksUsed--;
+            }
+        };
+        obj.toString = function() {
+            let b = [];
+            for(let i = 0; i < blocksUsed; i++) {
+                b.push(blockToBitString(a[i]));
+            }
+            return b.join('|');
+        };
+        obj.getBlockSize = getBlockSize;
+        obj.countBlocks = function () {
+            return blocksUsed;
+        };
+        return obj;
+    }
+
     function makeBlocks(size) {
-        return new BLOCK_TYPED_ARRAY(size);
+        return create(size);
     }
 
     function makeBits(k) {
         return makeBlocks(Math.ceil(k / BITS_PER_BLOCK));
     }
 
-    function getBit(blocks, i) {
-        //    const offset = i % BITS_PER_BLOCK;
-        //    const n = (i - offset) / BITS_PER_BLOCK;
-        // if we assume max size of array is < 2^31, we can use bit ops:
-        const offset = i & BLOCK_MASK;
-        const n = i >>> LOG_BLOCK_SIZE;
-        if (n < blocks.length && (blocks[n] & (1 << offset))) {
-            return 1;
-        } else {
-            return 0;
-        }
+    function getBit(bitBlock, i) {
+        return bitBlock.getBit(i);
     }
 
-    function setBit(blocks, i, value=1) {
-        const offset = i & BLOCK_MASK;
-        const n = i >>> LOG_BLOCK_SIZE;
-        if (n < blocks.length) {
-            if (value) {
-                blocks[n] |= (1 << offset);
-            } else {
-                blocks[n] &= (~ (1 << offset));
-            }
-        } else {
-            throw new RangeError('bit index ' + i + ' is out of bounds');
-        }
+    function setBit(bitBlock, i, value=1) {
+        return bitBlock.setBit(i, value);
+    }
+
+    function trim(bitBlock) {
+        bitBlock.trim();
+    }
+
+    function toString(bitBlock) {
+        return bitBlock.toString();
+    }
+
+    function countBlocks(bitBlock) {
+        return bitBlock.countBlocks();
     }
 
     exports.makeBits = makeBits;
+    exports.countBlocks = countBlocks;
+    exports.getBlockSize = getBlockSize;
     exports.getBit = getBit;
     exports.setBit = setBit;
+    exports.trim = trim;
+    exports.toString = toString;
 
 })((typeof exports === 'undefined') ? this.bitBlocks = {} : exports);
