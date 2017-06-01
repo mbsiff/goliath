@@ -33,7 +33,7 @@
 
     function create(nBlocks) {
         let obj = {};
-        let bitsUsed = 1;
+        let bitsUsed = 1;  // starts at 1 since even [0] "uses" 1 bit
         let blocksUsed = nBlocks;
         let a = new BLOCK_TYPED_ARRAY(nBlocks);
         obj.setBit = function(i, value=1) {
@@ -41,7 +41,7 @@
             const n = i >>> LOG_BLOCK_SIZE;
             if (n < blocksUsed) {
                 if (value) {
-                    if (i > bitsUsed) {
+                    if (i >= bitsUsed) {
                         bitsUsed = i + 1;
                     }
                     a[n] |= (1 << offset);
