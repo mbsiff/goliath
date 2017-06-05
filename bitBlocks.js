@@ -3,6 +3,8 @@
 
     // assumption is that block sizes are powers of 2
 
+// dumb comment for testing
+
     const BLOCK_TYPED_ARRAY = Uint16Array;
     const BITS_PER_BLOCK =  8 * BLOCK_TYPED_ARRAY.BYTES_PER_ELEMENT;
     const BLOCK_MASK = BITS_PER_BLOCK - 1;
