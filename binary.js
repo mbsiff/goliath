@@ -98,7 +98,7 @@
   function randomK(k){
     var z = BB.makeBits(k);
     for (let i = 0; i < k; i++){
-      if (Math.random() > .5){
+      if (Math.random() > 0.5){
         z.setBit(i, 1);
       }
     }
