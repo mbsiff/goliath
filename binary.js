@@ -108,20 +108,11 @@
   //returns a random GN less than n and greater than m;
   function randomRange(m, n){
     let k = n.countBits();
+    let j = m.countBits();
     let x = randomK(k);
-    let median = midpoint(m, n);
-    let less = lt(x, n);
-    let more = gt(x, m);
-    if (less && more){
-      return x;
-    } else if (less){
-      let s = sub(x, median);
-      return s;
-    } else {
-      let s = add(x, median);
-      return s;
-    }
-  }
+    let y = divmod(x, n).r;
+    y.setBit(j, 1);
+    return y;
 
   //copies digit of a binary number from the kth bit onwards
   function copy(x, k){
@@ -494,4 +485,4 @@
   exports.bitsToTen = bitsToTen;
   exports.inc = inc;
   exports.dec = dec;
-}) ((typeof exports === 'undefined') ? this.fib = {} : exports);
+}) ((typeof exports === 'undefined') ? this.bin = {} : exports);
