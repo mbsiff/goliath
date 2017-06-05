@@ -33,7 +33,7 @@
 
     function create(nBlocks) {
         let obj = {};
-        let bitsUsed = 1;  // starts at 1 since even [0] "uses" 1 bit
+        let bitsUsed = 1;
         let blocksUsed = nBlocks;
         let a = new BLOCK_TYPED_ARRAY(nBlocks);
         obj.setBit = function(i, value=1) {
