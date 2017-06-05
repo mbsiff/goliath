@@ -11,347 +11,39 @@
 (function(exports){
   'use strict';
 
-  //takes a JS integer, returns binary array
-  function tenToBits(c){
-    var x = c;
-    var s = '';
-    var i = 0;
-    var b;
-    if (x === 0){
-      return [0];
-    } else {
-      while (x > 0){
-        if (x % 2 === 1){
-          s += '1';
-        } else {
-          s += '0';
-        }
-        x = Math.floor(x / 2);
-        i ++;
-      }
-      b = s.split("");
-      i = 0;
-      while (i < b.length){
-        b[i] = parseFloat(b[i]);
-        i ++;
-      }
-      return b;
-    }
-  }
+  var BB = require('./bitBlocks');
 
-  //takes an array of Boolean values and returns a JS integer;
-  function boolsToInt(a){
-    var i = a.length;
-    var b = 0;
-    while (i >= 0){
-      if (a[i]){
-        b += Math.pow(2, i);
-      }
-      i --;
-    }
-    return b;
-  }
+  //*BASICS OF BITS*//
 
-  //takes two binary arrays and compares them to check for equality
-  function compare(a, b){
-    var i = 0;
-    var breaker;
-    if (a.length === b.length){
-      breaker = true;
-      while (i < a.length && breaker){
-        if (a[i] === b[i]){
-          i ++;
-        } else {
-          breaker = false;
-          return false;
-        }
-      }
-      if (breaker){
-        return true;
-      }
-    } else {
-      return false;
-    }
-
-  }
-
-  //increments a boolean array representing a binary number in the usual way by 1
-  function incBools(a){
-    var i = 0;
-    var carry = true;
-    var bools =[];
-    while (i < a.length){
-      bools[i] = a[i];
-      i ++;
-    }
-    i = 0;
-    while (carry && i < bools.length) {
-        carry = bools[i];
-        bools[i] = !bools[i];
-        i ++;
-    }
-    if (carry) {
-        bools.push(true);
-    }
-    return bools;
-  }
-  //this is a silly way to do this if we have the add function;
-/*  function inc(c){
-    var i = 0;
-    var a = c.slice(0,c.length);
-    var b = [1];
-    var carry = 0;
-    var n = [];
-    while (a.length > b.length){
-      b.push(0);
-    }
-    while (i < a.length){
-      if ((a[i] + b[i] + carry) < 2) {
-        n[i] = a[i] + b[i] + carry;
-        carry = 0;
-      } else {
-        n[i] = a[i] + b[i] + carry - 2;
-        carry = 1;
-      }
-      i ++;
-    }
-    if (carry === 1){
-      n.push(1);
-    }
-    return n;
-  } */
-
-  //smarter inc function
-  function inc(c){
-    return add([1], c);
-  }
-
-  //first draft of decrement function;
-  function dec(c){
-    return sub(c, [1]);
-  }
-
-  //takes two binary arrays x,y - if x > y, true; else false;
-  function gt(x, y){
-    var i = x.length;
-    var breaker = true;
-    var result;
-    if (x.length > y.length){
-      result = true;
-    } else if (y.length > x.length){
-      result = false;
-    } else{
-      while (i >= 0 && breaker){
-        if (x[i] === y[i]){
-          i --;
-        } else if (x[i] > y[i]){
-          breaker = false;
-          result =  true;
-        } else {
-          breaker = false;
-          result =  false;
-        }
-      }
-    }
-    return result;
-  }
-
-  //takes two binary arrays x,y - if x < y, true; else false;
-  function lt(x, y){
-    var i = x.length;
-    var breaker = true;
-    if (x.length < y.length){
-      return true;
-    } else if (y.length < x.length){
-      return false;
-    } else{
-      while (i >= 0 && breaker){
-        if (x[i] === y[i]){
-          i --;
-        } else if (x[i] < y[i]){
-          return true;
-        } else {
-          return false;
-        }
-      }
-    }
-  }
-
-  //takes two binary arrays x,y  - if x <= y, true; else false;
-  function leq(x, y){
-    if (compare(x, y)){
-      return true;
-    } else {
-      return lt(x, y)
-    }
-  }
-
-  //takes two binary arrays x,y - if x  >= y, true; else false;
-  function geq(x, y){
-    if (compare(x, y)){
-      return true;
-    } else {
-      return gt(x, y);
-    }
-  }
-
-  //takes two binary numbers x,y; returns a binary number x+y;
-  function add(x, y){
-    var i = 0;
-    var a = x.slice(0, x.length);
-    var b = y.slice(0, y.length);
-    var z = [0];
-    var carry = 0;
-    if (a.length > b.length){
-      while (b.length < a.length){
-        b.push(0);
-      }
-    } else if (a.length < b.length){
-      while (a.length < b.length){
-        a.push(0);
-      }
-    }
-    while (i < a.length){
-      if ((a[i] + b[i] + carry) < 2) {
-        z[i] = a[i] + b[i] + carry;
-        carry = 0;
-      } else {
-        z[i] = a[i] + b[i] + carry - 2;
-        carry = 1;
-      }
-      i ++;
-    }
-    if (carry === 1){
-      z.push(1);
-    }
-    return z;
-  }
-
-  //takes two binary numbers x,y and returns the value (x - y)
-  //assumes that a > b
-  function sub(x, y){
-    var i = 0;
-    var a = x.slice(0, x.length);
-    var b = y.slice(0, y.length);
-    var z = [0];
-    var borrow = 0;
-    var temp;
-    var breaker;
-    while (a.length > b.length){
-      b.push(0);
-    }
-    while (i < a.length){
-      if ((a[i] - b[i]) >= 0) {
-        z[i] = a[i]- b[i];
-      } else {
-        temp = i;
-        while (a[temp] - b[temp] < 0){
-          if (a[i + 1] === 0){
-            i ++;
-          } else {
-            a[i + 1] --;
-            a[i] = 2;
-            i = temp;
-          }
-        }
-        i = temp;
-        z[i] = a[i] - b[i];
-        }
-      i ++;
-    }
-
-    i = z.length - 1;
-    while (z[i] === 0 && i > 0){
-      z.pop();
-      i--;
-    }
-
-    return z;
-  }
-
-  //takes two binary numbers x,y; returns a binary number xy;
-  function dot(x,y){
-    var i = 0;
-    var short, long;
-    var xy = [];
-    if (x.length > y.length){
-      short = y;
-      long = x;
-    } else {
-      short = x;
-      long = y;
-    }
-    while (i < short.length){
-      if (short[i] === 1){
-        xy = add(xy, shiftLeft(long, i));
-      }
-      i ++;
-    }
-    return xy;
-  }
-
-  //takes two binary numbers x,y; returns an object of the form
-  //{q:(x / y), r: (x % y)}
-  function divmod(x,y){
-    var i  = x.length - 1;
-    var rem = [];
-    var quo = [];
-    while (i >= 0){
-      rem = shiftLeft(rem, 1);
-      rem[0] = x[i];
-      quo = shiftLeft(quo, 1);
-        if (leq(y, rem)){
-          rem = sub(rem,y);
-          quo[0] = 1;
-        }
-        i --;
-    }
-    return {q: quo, r: rem};
-  }
-
-  //converts an array of binary numbers into a string (so we can use integers
-  // of arbitrary length!)
-  function bitsToString(c){
-    var digits = [];
-    var ten = stringToBits("10");
-    var n = c.slice(0, c.length);
-    if (c.length === 1 && c[0] === 0){
-      return '0';
-    } else {
-      while (gt(n, [0])){
-        let q = divmod(n, ten).q;
-        let r = divmod(n, ten).r;
-        digits.push(bitsToTen(r));
-        n = q;
-      }
-      return digits.reverse().join("");
-    }
-  }
-
-  //takes a binary array x and normal integer n and produces x to the power n;
-  function pow(x, n){
-    var i = 1;
-    var r = x;
-
+  //takes a JS integer, returns a Goliath number(hereby, GNs)
+  function tenToBits(n){
+    let size = 0;
+    let m = n;
     if (n === 0){
-      r = [1];
+      let bits = BB.makeBits(1);
+      return bits;
     } else {
-      while (i < n){
-        r = dot(r, x);
-        i++;
+      while (m > 0){
+        m = Math.floor(m / 2);
+        size++;
       }
+      let bits = BB.makeBits(size);
+      m = n;
+      for (let i = 0; i < size; i++){
+        BB.setBit(bits, i, m % 2);
+        m = Math.floor(m / 2);
+      }
+      return bits;
     }
-    return r;
   }
 
-  //converts binary arrays to normal integers (use this for converting numbers
+  //converts GNs to normal JS integers (use this for converting numbers
   //less than 10);
-  function bitsToTen(c){
+  function bitsToTen(x){
     var i = 0;
     var t = 0;
-    var x = c.slice(0, c.length);
-    while (i < x.length){
-      if (x[i] === 1){
+    while (i <= BB.countBits(x)){
+      if (BB.getBit(x, i) === 1){
         t += Math.pow(2, i);
       }
       i++;
@@ -359,65 +51,17 @@
     return t;
   }
 
-
-  //returns the sum of the first n binary numbers;
-  function sum(n){
-    var x = tenToBits(n);
-    var i = tenToBits(1);
-    var total = tenToBits(0);
-    while (leq(i, x)){
-      total = add(total, i);
-      i = inc(i);
-    }
-    return total;
-  }
-
-  //tester function returning the sum of the first n numbers in the usual way;
-  function sumInt(n){
-    var total = 0;
-    var i = 0;
-    while (i <= n){
-      total += i;
-      i ++;
-    }
-    return total;
-  }
-
-  //equivalent of <<
-  function shiftLeft(c, n){
-    var a = [];
-    var i = 0;
-    var m = 0;
-    if (c.length === 1 && c[i] === 0){
-      a = c;
-    } else {
-      while (m < n){
-        a.push(0);
-        m ++;
-      }
-      while (i < c.length){
-        a.push(c[i]);
-        i++;
-      }
-    }
-    return a;
-  }
-
-  //equivalent of >>
-  function shiftRight(c, n){
-    return c.slice(n, c.length);
-  }
-
-  //takes a string of arbitrary length, assumed to be represneing a valid
-  //integer, and returns that integers as a binary array;
+  //takes a string of arbitrary length, assumed to be representing a valid
+  //integer, and returns that integer as a GN;
   function stringToBits(s){
-    var i = 0;
-    var b = [];
+    let i = 0;
+    let b = tenToBits(0);
     var x;
     while (i < s.length){
       if (s.charAt(i) !== ','){
         x = parseFloat(s.charAt(i));
         b = add(b, tenToBits(x));
+
         if (i + 1 < s.length){
           b = add(shiftLeft(b, 2), b);
           b = shiftLeft(b, 1);
@@ -428,139 +72,398 @@
     return b;
   }
 
-  //returns an array of the first n powers of two (0 included)
-  function pow2(n){
-    var i = 0;
-    var powers = [];
-    while (i <= n){
-      powers.push(bitsToString(pow([0,1], i)));
-      i++;
+  //converts a GN into a string (so we can compute integers of arbitrary length!)
+  function bitsToString(c){
+    let digits = [];
+    let ten = stringToBits("10");
+    let zero = stringToBits("0");
+    let n = c;
+    if (c.countBits() === 1 && tenToBits(c) === 0){
+      return '0';
+    } else {
+      while (gt(n, zero)){
+        let q = divmod(n, ten).q;
+        let r = divmod(n, ten).r;
+        digits.push(bitsToTen(r));
+        n = q;
+      }
+      return digits.reverse().join("");
     }
-    return powers;
   }
 
-  //brute force primality test
-  function isPrime(n){
-    var i = [0,1];
-    var breaker = true;
-    while (lt(pow(i, 2), n) && breaker){
-      if (compare(divmod(n, i).r, [0])){
-        breaker = false;
+  //generates a random k bit GN
+  function randomK(k){
+    var z = BB.makeBits(k);
+    for (let i = 0; i < k; i++){
+      if (Math.random() > .5){
+        z.setBit(i, 1);
       }
-      i = inc(inc(i));
-      }
-      return breaker;
-    }
-
-  //returns a number representing bitwise and of two numbers x and y
-  function and(x, y){
-    var z = [];
-    var i = 0;
-    var n;
-    if (x.length > y.length){
-      n = y;
-    } else {
-      n = x;
-    }
-    while (i < n.length){
-      if (x[i] & y[i]){
-        z.push(1);
-      } else {
-        z.push(0);
-      }
-      i++;
     }
     return z;
   }
 
-  //returns a BN that is the bitwise OR of x and y
-  function or(x, y){
-    var z = [];
-    var i = 0;
-    var n;
-    var m;
-    if (x.length > y.length){
-      n = y.length;
-      m = x.length;
+  //returns a random GN less than n and greater than m;
+  function randomRange(m, n){
+    let k = n.countBits();
+    let x = randomK(k);
+    let median = midpoint(m, n);
+    let less = lt(x, n);
+    let more = gt(x, m);
+    if (less && more){
+      return x;
+    } else if (less){
+      let s = sub(x, median);
+      return s;
     } else {
-      n = x.length;
-      m = y.length;
+      let s = add(x, median);
+      return s;
     }
-    while (i < n){
-      if (x[i] | y[i]){
-        z.push(1);
-      } else {
-        z.push(0)
-      }
-      i ++;
-    }
-    return z;
   }
 
-  //returns a number that is the bitwise XOR of x and y
-  function xor(x, y){
-    var z = [];
-    var i = 0;
-    var n;
+  //copies digit of a binary number from the kth bit onwards
+  function copy(x, k){
+    let n = x.countBits();
+    let c = BB.makeBits(n);
+    for (let i = k; i < n; i++){
+      c.setBit(i, x.getBit(i));
+    }
+    return c;
+  }
 
-    if (x.length > y.length){
-      n = x.length;
+  //*Mathematical Order Operators*//
+
+  //takes two binary arrays and compares them to check for equality
+  function isEqual(a, b){
+    if (compareTo(a, b) === 0){
+      return true;
     } else {
-      n = y.length;
+      return false;
+    }
+  }
+
+  //takes two binary arrays x,y - if x > y, true; else false;
+  function gt(x, y){
+    if (compareTo(x, y) === 1){
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  //takes two binary arrays x,y - if x < y, true; else false;
+  function lt(x, y){
+    if (compareTo(x, y) === -1){
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  //takes two binary arrays x,y  - if x <= y, true; else false;
+  function leq(x, y){
+    let z = compareTo(x, y);
+    if (z === 0 || z === -1){
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  //takes two binary arrays x,y - if x  >= y, true; else false;
+  function geq(x, y){
+    let z = compareTo(x, y);
+    if (z === 0 || z === 1){
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  //returns the maximum of two numbers x and y;
+  function max(x, y){
+    if (gt(x, y)){
+      return x;
+    } else {
+      return y;
+    }
+  }
+
+  //returns the minimum of x and y;
+  function min(x, y){
+    if (lt(x, y)){
+      return x;
+    } else {
+      return y;
+    }
+  }
+
+  //given GNs a, b, this function returns the integer (a - b)/2
+  function midpoint(a, b){
+    let two = tenToBits(2);
+    let order = compareTo(a, b);
+    var x;
+    var s;
+    if (order === 1){
+      x = sub(a, b);
+    } else if (order === -1){
+      x = sub(b, a);
+    } else {
+      let zero = tenToBits(0);
+      return zero;
     }
 
-    while (i < n){
-      if (x[i] ^ y[i]){
-        z.push(1);
-      } else {
-        z.push(0)
-      }
-      i ++;
-    }
-
-    return z;
+    s = divmod(x, two).q;
+    return s;
   }
 
   //compares x to y and returns 1 if x > y, 0 if x === y, -1 if x < y
   function compareTo(x, y){
-    if (compare(x,y)){
-      return 0;
-    } else if (lt(x, y)){
-        return -1;
-    } else {
+    let m = x.countBits();
+    let n = y.countBits();
+    if (m > n){
       return 1;
+    } else if (n > m){
+      return -1;
+    } else {
+      for (let i = n; i >= 0; i--) {
+        if (x.getBit(i) > y.getBit(i)){
+          return 1;
+        } else if (x.getBit(i) < y.getBit(i)){
+          return -1;
+        }
+      }
+      return 0;
+    }
+  }
+
+  //*Standard Algebraic Operations for the Positive Integers*//
+
+  //increments a GN by 1;
+  function inc(x){
+    let n = x.countBits();
+    let c = BB.makeBits(n + 1);
+    let carry = 1;
+    for (let i = 0; i < n; i++){
+      let total = x.getBit(i) + carry;
+      let sumBit = total % 2;
+      c.setBit(i, sumBit);
+      carry = (total - sumBit) / 2;
+    }
+    c.setBit(n, carry);
+    return c;
+  }
+
+  //takes two binary numbers x,y; returns a binary number x+y;
+  function add(x, y){
+    let n = Math.max(x.countBits(), y.countBits());
+    let c = BB.makeBits(n + 1);
+    let carry = 0;
+    for (let i = 0; i < n; i++){
+      let total = BB.getBit(x, i) + BB.getBit(y, i) + carry;
+      let sumBit = total % 2;
+      BB.setBit(c, i, sumBit);
+      carry = (total - sumBit) / 2;
+    }
+    BB.setBit(c, n, carry);
+    return c;
+  }
+
+  //takes two GNs x,y (assumed that x > y) and returns the value (x - y)
+  //assumes that a > b
+  function sub(a, b) {
+      let n = Math.max(a.countBits(), b.countBits());
+      let c = BB.makeBits(n);
+      let borrow = 0;
+      for (let i = 0; i < n; i++) {
+          let difference = (a.getBit(i) - borrow) - b.getBit(i);
+          if (difference < 0) {
+              borrow = 1;
+              difference = difference + 2;   // 2 since we are using base 2
+          } else {
+              borrow = 0;
+          }
+          c.setBit(i, difference);
+      }
+      return c;
+  }
+
+  //decrements a binary array by 1;
+  function dec(x){
+    let n = x.countBits();
+    let c = BB.makeBits(n + 1);
+    let borrow = 1;
+    for (let i = 0; i < n; i++){
+      let difference = x.getBit(i) - borrow;
+      if (difference < 0){
+        borrow = 1;
+        difference = difference + 2;
+      } else {
+        borrow = 0;
+      }
+      c.setBit(i, difference);
     }
 
+    return c;
   }
 
-  function modex(base, power, modulus){
-
-  }
-
-  //generates a random k bit number
-  function randomK(k){
-    var z = [0];
+  //takes two binary numbers x,y; returns a binary number xy;
+  function dot(x,y){
     var i = 0;
-    while (i < k){
-      z = shiftLeft(z);
-      if (Math.random() > .5){
-        z[i] = 1;
-      } else {
-        z[i] = 0;
+    var short, long;
+    var xy = tenToBits(0);
+    if (x.countBits() > y.countBits()){
+      short = y;
+      long = x;
+    } else {
+      short = x;
+      long = y;
+    }
+    while (i < short.countBits()){
+      if (short.getBit(i)){
+        xy = add(xy, shiftLeft(long, i));
       }
       i ++;
     }
+    return xy;
+  }
 
+  function mult(x, y){
+    let m = x.countBits();
+    let n = y.countBits();
+    let c = BB.makeBits(m + n);
+    let carry = 0;
+    let k = 0;
+    for (let j = 0; j < n; j++){
+      k = j;
+      carry = 0;
+      if (y.getBit(j)){
+        for (let i = 0; i < m; i++){
+          let total = x.getBit(i) * y.getBit(j) + c.getBit(k) + carry;
+          let sum = total % 2;
+          c.setBit(k, sum);
+          carry = (total - sum) / 2;
+          k++;
+        }
+        c.setBit(k, carry);
+      }
+    }
+    return c;
+  }
+
+  //takes two GN x,y; returns an object of the form
+  //{q:(x / y), r: (x % y)}
+  function divmod(x,y){
+    if (y.countBits() === 1 && tenToBits(y) === 0){
+      throw new RangeError("Can't divide by 0!");
+    } else {
+      let i  = x.countBits();
+      let rem = tenToBits(0);
+      let quo = tenToBits(0);
+      while (i >= 0){
+        rem = shiftLeft(rem, 1);
+        rem.setBit(0, x.getBit(i));
+        quo = shiftLeft(quo, 1);
+        if (leq(y, rem)){
+          rem = sub(rem, y);
+          quo.setBit(0, 1);
+        }
+        i --;
+      }
+      return {q: quo, r: rem};
+    }
+  }
+  //takes a GN x and normal integer n and produces x to the power n;
+  function pow(x, n){
+    let r = x;
+    if (n === 0){
+      r = tenToBits(1);
+    } else {
+      for (let i = 1; i < n; i++){
+        r = mult(r, x);
+      }
+    }
+    return r;
+  }
+
+  //computes exponentiation for modular arithmetic (base/power are Goliath nums)
+  //as with normal exponentiation, 0 to the 0 is undefined
+  function modex(base, power, modulus){
+    let c = tenToBits(0);
+    let d = tenToBits(1);
+    let two = tenToBits(2);
+    for (let i = power.countBits() - 1; i >= 0; i--){
+      c = mult(c, two);
+      d = divmod(mult(d, d), modulus).r;
+      if (power.getBit(i) === 1){
+        c = inc(c);
+        d = divmod(mult(d, base), modulus).r;
+      }
+    }
+    return d;
+  }
+
+  //*BITWISE OPERATORS*//
+
+  //analyzes two numbers on a bitwise level
+  function bitwise(x, y, f){
+    let n = Math.max(x.countBits(), y.countBits());
+    let z = BB.makeBits(n);
+    for (let i = 0; i < n; i++){
+      z.setBit(i, (f(x.getBit(i), y.getBit(i))));
+    }
     return z;
   }
 
-  //returns the kth bit of a number x
-  function getBit(k, x){
-    return x[k];
+  //returns bitwise AND of x, y
+  function and(x, y){
+    return bitwise(x, y, (x, y) => x & y);
   }
 
-  exports.getBit = getBit;
+  //returns bitwise OR of x, y
+  function or(x, y){
+    return bitwise(x, y, (x, y) => x | y);
+  }
+
+  //returns bitwise XOR of x, y
+  function xor(x, y){
+    return bitwise(x, y, (x, y) => x ^ y);
+  }
+
+  //equivalent of <<
+  function shiftLeft(c, n){
+    if (c.countBits() === 1 && bitsToTen(c) === 0){
+      return c;
+    } else {
+      let x = c.countBits();
+      let a = BB.makeBits(x + n);
+      let j = 0;
+      for (let i = n; i < x + n; i++){
+        a.setBit(i, c.getBit(j));
+        j++;
+      }
+      return a;
+    }
+  }
+
+  //equivalent of >>
+  function shiftRight(c, n){
+    if (c.countBits() === 1 && bitsToTen(c) === 0){
+      return c;
+    } else {
+      let x = c.countBits();
+      let a = BB.makeBits(x - n);
+      let j = n;
+      for (let i = 0; i < x - n; i++){
+        a.setBit(i, c.getBit(j));
+        j++;
+      }
+      return a;
+    }
+  }
+
+  exports.copy = copy;
   exports.randomK = randomK;
+  exports.randomRange = randomRange;
   exports.and = and;
   exports.or = or;
   exports.xor = xor;
@@ -570,21 +473,22 @@
   exports.gt = gt;
   exports.leq = leq;
   exports.geq = geq;
+  exports.max = max;
+  exports.min = min;
+  exports.midpoint = midpoint;
   exports.stringToBits = stringToBits;
   exports.bitsToString = bitsToString;
-  exports.compare = compare;
+  exports.isEqual = isEqual;
   exports.add = add;
   exports.sub = sub;
   exports.dot = dot;
+  exports.mult = mult;
   exports.divmod = divmod;
   exports.pow = pow;
-  exports.pow2 = pow2;
-  exports.isPrime = isPrime;
   exports.shiftLeft = shiftLeft;
   exports.shiftRight = shiftRight;
   exports.tenToBits = tenToBits;
   exports.bitsToTen = bitsToTen;
   exports.inc = inc;
   exports.dec = dec;
-  exports.sum = sum;
 }) ((typeof exports === 'undefined') ? this.fib = {} : exports);
