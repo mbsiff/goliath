@@ -1,6 +1,7 @@
 //This is the working code for Goliath, a big integer implementation for JS
 
 //David Gentile, Michael Siff;
+//We add our names
 
 //the fundamental idea is that we would like to be able to handle integers of
 //arbitrary length - to that end we will represent integers not as number
