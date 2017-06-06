@@ -64,7 +64,6 @@
       if (s.charAt(i) !== ','){
         x = parseFloat(s.charAt(i));
         b = add(b, tenToBits(x));
-
         if (i + 1 < s.length){
           b = add(shiftLeft(b, 2), b);
           b = shiftLeft(b, 1);
@@ -78,17 +77,17 @@
   //converts a GN into a string (so we can compute integers of arbitrary length!)
   function bitsToString(c){
     let digits = [];
-    let ten = stringToBits("10");
-    let zero = stringToBits("0");
+    let ten = stringToBits('10');
+    let zero = stringToBits('0');
     let n = c;
-    if (c.countBits() === 1 && tenToBits(c) === 0){
+    if (c.countBits() === 1 && bitsToTen(c) === 0){
       return '0';
     } else {
       while (gt(n, zero)){
-        let q = divmod(n, ten).q;
-        let r = divmod(n, ten).r;
+        let x = divmod(n, ten);
+        let r = x.r;
+        n = x.q;
         digits.push(bitsToTen(r));
-        n = q;
       }
       return digits.reverse().join("");
     }
@@ -96,9 +95,9 @@
 
   //generates a random k bit GN
   function randomK(k){
-    var z = BB.makeBits(k);
+    let z = BB.makeBits(k);
     for (let i = 0; i < k; i++){
-      if (Math.random() > .5){
+      if (Math.random() > 0.5){
         z.setBit(i, 1);
       }
     }
@@ -108,19 +107,11 @@
   //returns a random GN less than n and greater than m;
   function randomRange(m, n){
     let k = n.countBits();
+    let j = m.countBits();
     let x = randomK(k);
-    let median = midpoint(m, n);
-    let less = lt(x, n);
-    let more = gt(x, m);
-    if (less && more){
-      return x;
-    } else if (less){
-      let s = sub(x, median);
-      return s;
-    } else {
-      let s = add(x, median);
-      return s;
-    }
+    let y = divmod(x, n).r;
+    y.setBit(j - 1, 1);
+    return y;
   }
 
   //copies digit of a binary number from the kth bit onwards
@@ -200,24 +191,6 @@
     }
   }
 
-  //given GNs a, b, this function returns the integer (a - b)/2
-  function midpoint(a, b){
-    let two = tenToBits(2);
-    let order = compareTo(a, b);
-    var x;
-    var s;
-    if (order === 1){
-      x = sub(a, b);
-    } else if (order === -1){
-      x = sub(b, a);
-    } else {
-      let zero = tenToBits(0);
-      return zero;
-    }
-
-    s = divmod(x, two).q;
-    return s;
-  }
 
   //compares x to y and returns 1 if x > y, 0 if x === y, -1 if x < y
   function compareTo(x, y){
@@ -310,26 +283,6 @@
   }
 
   //takes two binary numbers x,y; returns a binary number xy;
-  function dot(x,y){
-    var i = 0;
-    var short, long;
-    var xy = tenToBits(0);
-    if (x.countBits() > y.countBits()){
-      short = y;
-      long = x;
-    } else {
-      short = x;
-      long = y;
-    }
-    while (i < short.countBits()){
-      if (short.getBit(i)){
-        xy = add(xy, shiftLeft(long, i));
-      }
-      i ++;
-    }
-    return xy;
-  }
-
   function mult(x, y){
     let m = x.countBits();
     let n = y.countBits();
@@ -356,7 +309,7 @@
   //takes two GN x,y; returns an object of the form
   //{q:(x / y), r: (x % y)}
   function divmod(x,y){
-    if (y.countBits() === 1 && tenToBits(y) === 0){
+    if (y.countBits() === 1 && bitsToTen(y) === 0){
       throw new RangeError("Can't divide by 0!");
     } else {
       let i  = x.countBits();
@@ -478,13 +431,11 @@
   exports.geq = geq;
   exports.max = max;
   exports.min = min;
-  exports.midpoint = midpoint;
   exports.stringToBits = stringToBits;
   exports.bitsToString = bitsToString;
   exports.isEqual = isEqual;
   exports.add = add;
   exports.sub = sub;
-  exports.dot = dot;
   exports.mult = mult;
   exports.divmod = divmod;
   exports.pow = pow;
@@ -494,4 +445,4 @@
   exports.bitsToTen = bitsToTen;
   exports.inc = inc;
   exports.dec = dec;
-}) ((typeof exports === 'undefined') ? this.fib = {} : exports);
+}) ((typeof exports === 'undefined') ? this.bin = {} : exports);
