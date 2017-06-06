@@ -107,10 +107,37 @@
     }
   }
 
-  function compareTo(bits){
-
+  function add(x, y){
+    return _make(_add(x.makeImmutable(), y.makeImmutable()));
   }
 
+  function _compareTo(x, y){
+    let m = x.countBits();
+    let n = y.countBits();
+    if (m > n){
+      return 1;
+    } else if (n > m){
+      return -1;
+    } else {
+      for (let i = n; i >= 0; i--) {
+        let p = x.getBit(i);
+        let q = y.getBit(i);
+        if (p > q){
+          return 1;
+        } else if (q > p){
+          return -1;
+        }
+      }
+      return 0;
+    }
+  }
+
+  function compareTo(x, y){
+    return _compareTo(x.makeImmutable(), y.makeImmutable());
+  }
+
+  exports.add = add;
+  exports.compareTo = compareTo;
   exports.make = make;
   exports.ZERO = ZERO;
   exports.ONE = ONE;
