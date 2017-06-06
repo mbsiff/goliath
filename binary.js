@@ -128,49 +128,27 @@
 
   //takes two binary arrays and compares them to check for equality
   function isEqual(a, b){
-    if (compareTo(a, b) === 0){
-      return true;
-    } else {
-      return false;
-    }
+    return compareTo(x, y) === 0;
   }
 
   //takes two binary arrays x,y - if x > y, true; else false;
   function gt(x, y){
-    if (compareTo(x, y) === 1){
-      return true;
-    } else {
-      return false;
-    }
+    return compareTo(x, y) === 1
   }
 
   //takes two binary arrays x,y - if x < y, true; else false;
   function lt(x, y){
-    if (compareTo(x, y) === -1){
-      return true;
-    } else {
-      return false;
-    }
+    return compareTo(x, y) === -1;
   }
 
   //takes two binary arrays x,y  - if x <= y, true; else false;
   function leq(x, y){
-    let z = compareTo(x, y);
-    if (z === 0 || z === -1){
-      return true;
-    } else {
-      return false;
-    }
+    return compareTo(x, y) !== 1;
   }
 
   //takes two binary arrays x,y - if x  >= y, true; else false;
   function geq(x, y){
-    let z = compareTo(x, y);
-    if (z === 0 || z === 1){
-      return true;
-    } else {
-      return false;
-    }
+    return compareTo(x, y) !== -1
   }
 
   //returns the maximum of two numbers x and y;
@@ -202,9 +180,11 @@
       return -1;
     } else {
       for (let i = n; i >= 0; i--) {
-        if (x.getBit(i) > y.getBit(i)){
+        let p = x.getBit(i);
+        let q = y.getBit(i);
+        if (p > q){
           return 1;
-        } else if (x.getBit(i) < y.getBit(i)){
+        } else if (q > p){
           return -1;
         }
       }
