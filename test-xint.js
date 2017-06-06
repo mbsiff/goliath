@@ -4,7 +4,9 @@
 let assert = require('assert');
 let Xint = require('./xint');
 
+
 var m, n, z;
+
 
 // constants
 assert.strictEqual(Xint.ZERO.toBinaryString(), '0',
@@ -22,9 +24,8 @@ assert.strictEqual(n.toString(2),
 
 // working with different string formats
 
-
-
 // comparisons
+
 
 
 // addition
