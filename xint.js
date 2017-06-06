@@ -18,7 +18,10 @@
     let obj = {};
     obj.toBinaryString = () => bitsToBinaryString(bits);
     obj.getBit = i => bits.getBit(i);
+<<<<<<< HEAD
     obj.countBits = () => bits.countBits();
+=======
+>>>>>>> c0d8bde68970f624e87a2b36879e79b5315dc8c8
     return obj;
   }
 
