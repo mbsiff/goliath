@@ -17,6 +17,7 @@
   function _make(bits) {
     let obj = {};
     obj.toBinaryString = () => bitsToBinaryString(bits);
+    obj.getBit = i => bits.getBit(i);
     return obj;
   }
 
