@@ -4,7 +4,9 @@
 let assert = require('assert');
 let Xint = require('./xint');
 
-var n;
+
+var m, n, z;
+
 
 // constants
 assert.strictEqual(Xint.ZERO.toBinaryString(), '0',
@@ -21,13 +23,14 @@ assert.strictEqual(n.toString(2),
                     '1111010111111001110000001010101111101');
 
 // working with different string formats
-// explicit hex string
-// allowed bases
-// disallowed bases throw RangeError
-// invalid strings also throw RangeError
-
 
 // comparisons
 
 
-//
+
+// addition
+n = Xint.make('132057142653');
+m = Xint.make('999999999999');
+z = Xint.make('1132057142652');
+assert.strictEqual(Xint.compareTo(Xint.add(n, m), z),
+                    0);
