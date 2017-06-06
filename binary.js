@@ -309,7 +309,7 @@
   //takes two GN x,y; returns an object of the form
   //{q:(x / y), r: (x % y)}
   function divmod(x,y){
-    if (y.countBits() === 1 && tenToBits(y) === 0){
+    if (y.countBits() === 1 && bitsToTen(y) === 0){
       throw new RangeError("Can't divide by 0!");
     } else {
       let i  = x.countBits();
