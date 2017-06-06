@@ -111,8 +111,9 @@
     let j = m.countBits();
     let x = randomK(k);
     let y = divmod(x, n).r;
-    y.setBit(j, 1);
+    y.setBit(j - 1, 1);
     return y;
+  }
 
   //copies digit of a binary number from the kth bit onwards
   function copy(x, k){
@@ -205,7 +206,6 @@
       let zero = tenToBits(0);
       return zero;
     }
-
     s = divmod(x, two).q;
     return s;
   }
@@ -301,26 +301,6 @@
   }
 
   //takes two binary numbers x,y; returns a binary number xy;
-  function dot(x,y){
-    var i = 0;
-    var short, long;
-    var xy = tenToBits(0);
-    if (x.countBits() > y.countBits()){
-      short = y;
-      long = x;
-    } else {
-      short = x;
-      long = y;
-    }
-    while (i < short.countBits()){
-      if (short.getBit(i)){
-        xy = add(xy, shiftLeft(long, i));
-      }
-      i ++;
-    }
-    return xy;
-  }
-
   function mult(x, y){
     let m = x.countBits();
     let n = y.countBits();
@@ -475,7 +455,6 @@
   exports.isEqual = isEqual;
   exports.add = add;
   exports.sub = sub;
-  exports.dot = dot;
   exports.mult = mult;
   exports.divmod = divmod;
   exports.pow = pow;

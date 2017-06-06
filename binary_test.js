@@ -38,25 +38,19 @@ function pow2(n){
   return powers;
 }
 
-//brute force primality test
-function isPrime(n){
-  let i = Bin.tenToBits(2);
-  let one = Bin.tenToBits(1);
-  let exp = Bin.sub(n, one);
-  if (Bin.isEqual(Bin.modex(i, exp, n), one)){
-    return true;
-  } else {
-    return false;
-  }
-}
+
 
 //generates a list of n random numbers in the given range();
-function rangGen(n, a, b){
+function randGen(n, a, b){
   let randoms = [];
   for(let i = 0; i < n; i++){
     randoms.push(Bin.bitsToString(Bin.randomRange(a, b)));
   }
+  return randoms;
 }
 
-var x = randGen(10, 32, 64);
+var a = Bin.stringToBits("32");
+var b = Bin.stringToBits("64");
+
+var x = randGen(10, a, b);
 console.log(x);
