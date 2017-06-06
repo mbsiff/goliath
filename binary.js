@@ -64,7 +64,6 @@
       if (s.charAt(i) !== ','){
         x = parseFloat(s.charAt(i));
         b = add(b, tenToBits(x));
-
         if (i + 1 < s.length){
           b = add(shiftLeft(b, 2), b);
           b = shiftLeft(b, 1);
@@ -78,17 +77,17 @@
   //converts a GN into a string (so we can compute integers of arbitrary length!)
   function bitsToString(c){
     let digits = [];
-    let ten = stringToBits("10");
-    let zero = stringToBits("0");
+    let ten = stringToBits('10');
+    let zero = stringToBits('0');
     let n = c;
-    if (c.countBits() === 1 && tenToBits(c) === 0){
+    if (c.countBits() === 1 && bitsToTen(c) === 0){
       return '0';
     } else {
       while (gt(n, zero)){
-        let q = divmod(n, ten).q;
-        let r = divmod(n, ten).r;
+        let x = divmod(n, ten);
+        let r = x.r;
+        n = x.q;
         digits.push(bitsToTen(r));
-        n = q;
       }
       return digits.reverse().join("");
     }
@@ -96,7 +95,7 @@
 
   //generates a random k bit GN
   function randomK(k){
-    var z = BB.makeBits(k);
+    let z = BB.makeBits(k);
     for (let i = 0; i < k; i++){
       if (Math.random() > 0.5){
         z.setBit(i, 1);
@@ -192,23 +191,6 @@
     }
   }
 
-  //given GNs a, b, this function returns the integer (a - b)/2
-  function midpoint(a, b){
-    let two = tenToBits(2);
-    let order = compareTo(a, b);
-    var x;
-    var s;
-    if (order === 1){
-      x = sub(a, b);
-    } else if (order === -1){
-      x = sub(b, a);
-    } else {
-      let zero = tenToBits(0);
-      return zero;
-    }
-    s = divmod(x, two).q;
-    return s;
-  }
 
   //compares x to y and returns 1 if x > y, 0 if x === y, -1 if x < y
   function compareTo(x, y){
@@ -449,7 +431,6 @@
   exports.geq = geq;
   exports.max = max;
   exports.min = min;
-  exports.midpoint = midpoint;
   exports.stringToBits = stringToBits;
   exports.bitsToString = bitsToString;
   exports.isEqual = isEqual;
