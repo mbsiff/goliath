@@ -98,8 +98,6 @@
         return bitsUsed;
       };
 
-      obj.makeImmutable = function(){return  makeImmutable(this);};
-
       return obj;
     }
 
@@ -133,16 +131,6 @@
 
     function countBits(bitBlock) {
       return bitBlock.countBits();
-    }
-
-    // returns an immutable interface wrapped
-    // around bitBlock
-    // important: does not copy bitBlock!
-    function makeImmutable(bitBlock) {
-      let obj = {};
-      obj.countBits = bitBlock.countBits;
-      obj.getBit = bitBlock.getBit;
-      return obj;
     }
 
     exports.makeBits = makeBits;

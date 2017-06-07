@@ -17,7 +17,8 @@
   function _make(bits) {
     let obj = {};
     obj.toBinaryString = () => bitsToBinaryString(bits);
-    obj.getBits = bits.makeImmutable;
+    obj.getBit = i => bits.getBit(i);
+    obj.countBits = () => bits.countBits();
     return obj;
   }
 
@@ -48,7 +49,7 @@
 
   function makeFromNumber(n) {
     if (n === 0) {
-      return _make(BB.makeBits(1));
+      return BB.makeBits(1);
     }
     let size = 0;
     let m = n;
@@ -104,7 +105,8 @@
   }
 
   function add(x, y){
-    return _make(_add(x.getBits(), y.getBits()));
+    // eventually, handle signs
+    return _make(_add(x, y));
   }
 
   function _compareTo(x, y){
@@ -128,8 +130,9 @@
     }
   }
 
-  function compareTo(x, y){
-    return _compareTo(x.makeImmutable(), y.makeImmutable());
+  function compareTo(x, y) {
+    // eventually, handle signs
+    return _compareTo(x, y);
   }
 
   exports.add = add;
