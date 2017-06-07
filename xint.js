@@ -22,6 +22,27 @@
     return obj;
   }
 
+  function _compareTo(x, y){
+    let m = x.countBits();
+    let n = y.countBits();
+    if (m > n) {
+      return 1;
+    } else if (m < n){
+      return -1;
+    } else {
+      for(let i = m; i > 0; i--){
+        let a = x.getBit(i);
+        let b = y.getBit(i);
+        if (a > b){
+          return 1;
+        } else if (b > a){
+          return -1;
+        }
+      }
+      return 0;
+    }
+  }
+
   function _add(x,y){
     let n = Math.max(x.countBits(), y.countBits());
     let z = BB.makeBits(n + 1);
@@ -34,6 +55,67 @@
     }
     z.setBit(n, carry);
     return _make(z);
+  }
+
+  function _sub(x, y) {
+      let n = Math.max(x.countBits(), y.countBits());
+      let z = BB.makeBits(n);
+      let borrow = 0;
+      for (let i = 0; i < n; i++) {
+          let difference = (x.getBit(i) - borrow) - y.getBit(i);
+          if (difference < 0) {
+              borrow = 1;
+              difference = difference + 2;   // 2 since we are using base 2
+          } else {
+              borrow = 0;
+          }
+          z.setBit(i, difference);
+      }
+      return _make(z);
+  }
+
+  function _mult(x, y){
+    let m = x.countBits();
+    let n = y.countBits();
+    let z = BB.makeBits(m + n);
+    let carry = 0;
+    let k = 0;
+    for (let j = 0; j < n; j++){
+      k = j;
+      carry = 0;
+      if (y.getBit(j)){
+        for (let i = 0; i < m; i++){
+          let total = x.getBit(i) * y.getBit(j) + z.getBit(k) + carry;
+          let sum = total % 2;
+          z.setBit(k, sum);
+          carry = (total - sum) / 2;
+          k++;
+        }
+        z.setBit(k, carry);
+      }
+    }
+    return _make(z);
+  }
+
+  function _divmod(x,y){
+    if (y.countBits() === 1 && y.getBit(0) === 0){
+      throw new RangeError("Can't divide by 0!");
+    } else {
+      let i  = x.countBits();
+      let rem = ZERO;
+      let quo = ZERO;
+      while (i >= 0){
+        rem = _shiftLeft(rem, 1);
+        rem.setBit(0, x.getBit(i));
+        quo = _shiftLeft(quo, 1);
+        if (leq(y, rem)){
+          rem = sub(rem, y);
+          quo.setBit(0, 1);
+        }
+        i --;
+      }
+      return {q: _make(quo), r: _make(rem)};
+    }
   }
 
   function _shiftLeft(x, n){
@@ -109,6 +191,18 @@
     return _make(_add(x, y));
   }
 
+  function sub(x, y){
+    return _make(_sub(x, y));
+  }
+
+  function mult(x, y){
+    return _make(_mult(x, y));
+  }
+
+  function divmod(x, y){
+    return _divmod(x, y);
+  }
+
   function _compareTo(x, y){
     let m = x.countBits();
     let n = y.countBits();
@@ -136,6 +230,9 @@
   }
 
   exports.add = add;
+  exports.sub = sub;
+  exports.mult = mult;
+  exports.divmod = divmod;
   exports.compareTo = compareTo;
   exports.make = make;
   exports.ZERO = ZERO;
