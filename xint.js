@@ -2,8 +2,8 @@
   'use strict';
   var BB = require('./bitBlocks');
 
-  const ZERO = makeFromNumber(0);
-  const ONE  = makeFromNumber(1);
+  const ZERO = _make(makeFromNumber(0));
+  const ONE  = _make(makeFromNumber(1));
 
   function bitsToBinaryString(bits) {
     let s = '';
@@ -17,11 +17,7 @@
   function _make(bits) {
     let obj = {};
     obj.toBinaryString = () => bitsToBinaryString(bits);
-    obj.getBit = i => bits.getBit(i);
-<<<<<<< HEAD
-    obj.countBits = () => bits.countBits();
-=======
->>>>>>> c0d8bde68970f624e87a2b36879e79b5315dc8c8
+    obj.getBits = bits.makeImmutable;
     return obj;
   }
 
@@ -66,12 +62,12 @@
       BB.setBit(bits, i, m % 2);
       m = Math.floor(m / 2);
     }
-    return _make(bits);
+    return bits;
   }
 
   function makeFromString(s) {
     let i = 0;
-    let b = ZERO;
+    let b = BB.makeBits(1);
     var x;
     while (i < s.length){
       x = parseFloat(s.charAt(i));
@@ -82,7 +78,7 @@
       }
       i ++;
     }
-    return _make(b);
+    return b;
   }
 
   function make(x){
@@ -96,19 +92,19 @@
         if (x > Number.MAX_SAFE_INTEGER) {
           console.warn('...');
         }
-        return makeFromNumber(x);
+        return _make(makeFromNumber(x));
       } else {
         throw new TypeError("Can't convert a fractional number");
       }
     } else if (typeof x === 'string') {
-        return makeFromString(x);
+        return _make(makeFromString(x));
     } else {
       throw new TypeError("This type of input is not currently supported");
     }
   }
 
   function add(x, y){
-    return _make(_add(x.makeImmutable(), y.makeImmutable()));
+    return _make(_add(x.getBits(), y.getBits()));
   }
 
   function _compareTo(x, y){

@@ -16,10 +16,10 @@ assert.strictEqual(Xint.ONE.toBinaryString(), '1',
 
 // formation from literals
 n = Xint.make(37);
-assert.strictEqual(n.toString(2), '100101');
+assert.strictEqual(n.toBinaryString(), '100101');
 
 n = Xint.make('132057142653');
-assert.strictEqual(n.toString(2),
+assert.strictEqual(n.toBinaryString(),
                     '1111010111111001110000001010101111101');
 
 // working with different string formats

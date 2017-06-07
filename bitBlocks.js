@@ -98,8 +98,8 @@
         return bitsUsed;
       };
 
-      obj.makeImmutable = () => makeImmutable(this);
-      
+      obj.makeImmutable = function(){return  makeImmutable(this);};
+
       return obj;
     }
 
