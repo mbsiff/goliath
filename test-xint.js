@@ -47,7 +47,7 @@ m = Xint.make('999999999999');
 z = Xint.make('132057142652867942857347');
 assert.strictEqual(Xint.compareTo(Xint.mult(n, m), z),
                     0);
-                    
+
 // division and remainder
 n = Xint.make('132057142653');
 m = Xint.make('999999999999');
@@ -56,7 +56,7 @@ x = Xint.divmod(m, n);
 assert.strictEqual(Xint.compareTo(x.q, Xint.make(7)), 0);
 assert.strictEqual(Xint.compareTo(x.r, z), 0);
 
-// // representation as decimal string
-// s = '132057142653';
-// n = Xint.make(s);
-// assert.strictEqual(s, n.toString(), 0);
+// representation as decimal string
+s = '132057142653';
+n = Xint.make(s);
+assert.strictEqual(s, n.toString(), 0);

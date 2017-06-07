@@ -5,6 +5,18 @@
   const ZERO = _make(makeFromNumber(0));
   const ONE  = _make(makeFromNumber(1));
 
+  function bitsToTen(x){
+    var i = 0;
+    var t = 0;
+    while (i <= BB.countBits(x)){
+      if (BB.getBit(x, i) === 1){
+        t += Math.pow(2, i);
+      }
+      i++;
+    }
+    return t;
+  }
+
   function bitsToBinaryString(bits) {
     let s = '';
     let n = bits.countBits();
@@ -14,11 +26,29 @@
     return s;
   }
 
+  function bitsToDecimalString(c){
+    let digits = [];
+    let ten = make(10);
+    let n = c;
+    if (c.countBits() === 1 && bitsToTen(c) === 0){
+      return '0';
+    } else {
+      while (gt(n, ZERO)){
+        let x = divmod(n, ten);
+        let r = x.r;
+        n = x.q;
+        digits.push(bitsToTen(r));
+      }
+      return digits.reverse().join("");
+    }
+  }
+
   function _make(bits) {
     let obj = {};
     obj.toBinaryString = () => bitsToBinaryString(bits);
     obj.getBit = i => bits.getBit(i);
     obj.countBits = () => bits.countBits();
+    obj.toString = () => bitsToDecimalString(bits);
     return obj;
   }
 
@@ -229,11 +259,37 @@
     return _compareTo(x, y);
   }
 
+  function lt(x, y){
+    return compareTo(x, y) === -1
+  }
+
+  function gt(x, y){
+    return compareTo(x, y) === 1
+  }
+
+  function eq(x, y){
+    return compareTo(x, y) === 0
+  }
+
+  function leq(x, y){
+    return compareTo(x, y) !== 1
+  }
+
+  function geq(x, y){
+    return compareTo(x, y) !== -1
+  }
+
+
   exports.add = add;
   exports.sub = sub;
   exports.mult = mult;
   exports.divmod = divmod;
   exports.compareTo = compareTo;
+  exports.lt = lt;
+  exports.gt = gt;
+  exports.leq = leq;
+  exports.geq = geq;
+  exports.eq = eq;
   exports.make = make;
   exports.ZERO = ZERO;
   exports.ONE = ONE;
