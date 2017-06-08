@@ -77,12 +77,13 @@
       }
     };
     obj.trim = function() {
-      while(blocksUsed > 1 &&
-        a[blocksUsed-1] === 0) {
-          blocksUsed--;
-        }
-      };
-      obj.toString = function() {
+      while(blocksUsed > 1 && a[blocksUsed-1] === 0) {
+        blocksUsed--;
+      }
+      let n = blocksUsed - 1;
+      bitsUsed = n*BITS_PER_BLOCK + binLog(a[n]) + 1;
+    };
+    obj.toString = function() {
         let b = [];
         for(let i = 0; i < blocksUsed; i++) {
           b.push(blockToBitString(a[i]));
@@ -134,6 +135,7 @@
     }
 
     exports.makeBits = makeBits;
+    exports.makeBlocks = makeBlocks;
     exports.countBlocks = countBlocks;
     exports.countBits = countBits;
     exports.getBlockSize = getBlockSize;
