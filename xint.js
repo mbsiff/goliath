@@ -2,6 +2,9 @@
   'use strict';
   var BB = require('./bitBlocks');
 
+  const BLOCK_SIZE = BB.getBlockSize();
+  const CEILING = 1 << BLOCK_SIZE;
+
   const ZERO = _make(makeFromNumber(0));
   const ONE  = _make(makeFromNumber(1));
 
@@ -47,7 +50,9 @@
     let obj = {};
     obj.toBinaryString = () => bitsToBinaryString(bits);
     obj.getBit = i => bits.getBit(i);
+    obj.getBlock = i => bits.getBlock(i)
     obj.countBits = () => bits.countBits();
+    obj.countBlocks = () => bits.countBlocks();
     obj.toString = () => bitsToDecimalString(bits);
     return obj;
   }
@@ -84,6 +89,43 @@
       carry = (total - sum) / 2;
     }
     z.setBit(n, carry);
+    return _make(z);
+  }
+
+  function _blockAdd(x,y){
+    let n = Math.max(x.countBlocks(), y.countBlocks());
+    let z = BB.makeBlocks(n + 1);
+    let carry = 0;
+    for(let i = 0; i < n; i++){
+      let total = x.getBlock(i) + y.getBlock(i) + carry;
+      let sum = total % CEILING;
+      z.setBlock(i, sum);
+      carry = Math.floor(total / CEILING);
+    }
+    z.setBlock(n, carry);
+    return _make(z);
+  }
+
+  function _blockMult(x, y){
+    let m = x.countBlocks();
+    let n = y.countBlocks();
+    let z = BB.countBlocks(m + n);
+    let carry = 0;
+    let k = 0;
+    for (let j = 0; j < n; j++){
+      k = j;
+      carry = 0;
+      if (y.getBlock(j)){
+        for (let i = 0; i < m; i++){
+          let total = x.getBlock(i) * y.getBlock(j) + z.getBlock(k) + carry;
+          let sum = total % CEILING;
+          z.setBlock(k, sum);
+          carry = (total - sum) / CEILING;
+          k++;
+        }
+        z.setBlock(k, carry);
+      }
+    }
     return _make(z);
   }
 
@@ -221,6 +263,10 @@
     return _make(_add(x, y));
   }
 
+  function blockAdd(x, y) {
+      return _make(_blockAdd(x, y));
+  }
+
   function sub(x, y){
     return _make(_sub(x, y));
   }
@@ -281,6 +327,7 @@
 
 
   exports.add = add;
+  exports.blockAdd = blockAdd;
   exports.sub = sub;
   exports.mult = mult;
   exports.divmod = divmod;

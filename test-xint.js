@@ -60,3 +60,10 @@ assert.strictEqual(Xint.compareTo(x.r, z), 0);
 s = '132057142653';
 n = Xint.make(s);
 assert.strictEqual(s, n.toString(), 0);
+
+// block addition
+n = Xint.make('132057142653');
+m = Xint.make('999999999999');
+z = Xint.make('1132057142652');
+assert.strictEqual(Xint.compareTo(Xint.blockAdd(n, m), z),
+                    0);
