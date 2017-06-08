@@ -103,6 +103,7 @@
       carry = Math.floor(total / CEILING);
     }
     z.setBlock(n, carry);
+    z.trim();
     return _make(z);
   }
 
