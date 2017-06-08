@@ -21,6 +21,6 @@ console.log('testing on ' + r0 + ', ' + r1);
 metaTime((x, y) => x + y, r0, r1, 'built-in +');
 metaTime(Xint.add, xx, yy, 'xint add');
 metaTime(Xint.blockAdd, xx, yy, 'block add');
-//metaTime((x, y) => x * y, r0, r1, 100000, 'built-in *');
-//metaTime(Xint.mult, xx, yy, 100000, 'xint mult');
-// metaTime... blockMult
+metaTime((x, y) => x * y, r0, r1, 'built-in *');
+metaTime(Xint.mult, xx, yy, 'xint mult');
+metaTime(Xint.blockMult, xx, yy, 'block mult');

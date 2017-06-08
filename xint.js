@@ -78,6 +78,14 @@
     }
   }
 
+  function rand(k){
+    let x = BB.makeBits(k);
+    for (let i = 0; i < k; i++) {
+      x.setBit(i, Math.floor(1.5*Math.random()));
+    }
+    return _make(x);
+  }
+
   function _add(x,y){
     let n = Math.max(x.countBits(), y.countBits());
     let z = BB.makeBits(n + 1);
@@ -107,28 +115,6 @@
     return _make(z);
   }
 
-  function _blockMult(x, y){
-    let m = x.countBlocks();
-    let n = y.countBlocks();
-    let z = BB.countBlocks(m + n);
-    let carry = 0;
-    let k = 0;
-    for (let j = 0; j < n; j++){
-      k = j;
-      carry = 0;
-      if (y.getBlock(j)){
-        for (let i = 0; i < m; i++){
-          let total = x.getBlock(i) * y.getBlock(j) + z.getBlock(k) + carry;
-          let sum = total % CEILING;
-          z.setBlock(k, sum);
-          carry = (total - sum) / CEILING;
-          k++;
-        }
-        z.setBlock(k, carry);
-      }
-    }
-    return _make(z);
-  }
 
   function _sub(x, y) {
       let n = Math.max(x.countBits(), y.countBits());
@@ -169,6 +155,31 @@
     }
     return _make(z);
   }
+
+  function _blockMult(x, y){
+    let m = x.countBlocks();
+    let n = y.countBlocks();
+    let z = BB.makeBlocks(m + n);
+    let carry = 0;
+    let k = 0;
+    for (let j = 0; j < n; j++){
+      k = j;
+      carry = 0;
+      if (y.getBlock(j)){
+        for (let i = 0; i < m; i++){
+          let total = x.getBlock(i) * y.getBlock(j) + z.getBlock(k) + carry;
+          let sum = total % CEILING;
+          z.setBlock(k, sum);
+          carry = Math.floor(total / CEILING);
+          k++;
+        }
+        z.setBlock(k, carry);
+      }
+    }
+    z.trim();
+    return _make(z);
+  }
+
 
   function _divmod(x,y){
     if (y.countBits() === 1 && y.getBit(0) === 0){
@@ -276,6 +287,10 @@
     return _make(_mult(x, y));
   }
 
+  function blockMult(x,y){
+    return _make(_blockMult(x,y));
+  }
+
   function divmod(x, y){
     return _divmod(x, y);
   }
@@ -327,10 +342,12 @@
   }
 
 
+  exports.rand = rand;
   exports.add = add;
   exports.blockAdd = blockAdd;
   exports.sub = sub;
   exports.mult = mult;
+  exports.blockMult = blockMult;
   exports.divmod = divmod;
   exports.compareTo = compareTo;
   exports.lt = lt;

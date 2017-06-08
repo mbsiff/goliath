@@ -67,3 +67,16 @@ m = Xint.make('999999999999');
 z = Xint.make('1132057142652');
 assert.strictEqual(Xint.compareTo(Xint.blockAdd(n, m), z),
                     0);
+
+// multiplication
+n = Xint.make('132057142653');
+m = Xint.make('999999999999');
+z = Xint.make('132057142652867942857347');
+assert.strictEqual(Xint.compareTo(Xint.blockMult(n, m), z),
+0);
+
+// //random
+// for (let i =0 ; i < 100; i++){
+//   let x = Xint.rand(64);
+//   console.log(x.toString());
+// }
