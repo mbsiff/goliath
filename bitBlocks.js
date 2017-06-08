@@ -134,6 +134,7 @@
     }
 
     exports.makeBits = makeBits;
+    exports.makeBlocks = makeBlocks;
     exports.countBlocks = countBlocks;
     exports.countBits = countBits;
     exports.getBlockSize = getBlockSize;
