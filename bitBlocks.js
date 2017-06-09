@@ -81,7 +81,10 @@
         blocksUsed--;
       }
       let n = blocksUsed - 1;
-      bitsUsed = n*BITS_PER_BLOCK + binLog(a[n]) + 1;
+      bitsUsed = n*BITS_PER_BLOCK + 1;
+      if (a[n]){
+        bitsUsed += binLog(a[n]);
+      }
     };
     obj.toString = function() {
         let b = [];

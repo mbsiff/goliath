@@ -133,6 +133,24 @@
       return _make(z);
   }
 
+  function _blockSub(x, y){
+    let n = Math.max(x.countBlocks(), y.countBlocks());
+    let z = BB.makeBits(n);
+    let borrow = 0;
+    for (let i = 0; i < n; i++) {
+        let difference = (x.getBlock(i) - borrow) - y.getBlock(i);
+        if (difference < 0) {
+            borrow = 1;
+            difference = difference + CEILING;   // 2 since we are using base 2
+        } else {
+            borrow = 0;
+        }
+        z.setBlock(i, difference);
+    }
+    z.trim();
+    return _make(z);
+}
+
   function _mult(x, y){
     let m = x.countBits();
     let n = y.countBits();
@@ -186,14 +204,14 @@
       throw new RangeError("Can't divide by 0!");
     } else {
       let i  = x.countBits();
-      let rem = ZERO;
-      let quo = ZERO;
+      let rem = BB.makeBits(1);
+      let quo = BB.makeBits(1);
       while (i >= 0){
         rem = _shiftLeft(rem, 1);
         rem.setBit(0, x.getBit(i));
         quo = _shiftLeft(quo, 1);
         if (leq(y, rem)){
-          rem = sub(rem, y);
+          rem = _blockSub(rem, y);
           quo.setBit(0, 1);
         }
         i --;
@@ -211,6 +229,21 @@
       j++;
     }
     return y;
+  }
+
+  function _modex(base, power, modulus){
+    let c = ZERO;
+    let d = ONE;
+    let two = make(2);
+    for (let i = power.countBits() - 1; i >= 0; i--){
+      c = blockMult(c, two);
+      d = divmod(blockMult(d, d), modulus).r;
+      if (power.getBit(i) === 1){
+        c = blockAdd(c, ONE);
+        d = divmod(blockMult(d, base), modulus).r;
+      }
+    }
+    return _make(d);
   }
 
   function makeFromNumber(n) {
@@ -276,23 +309,45 @@
   }
 
   function blockAdd(x, y) {
+    if (eq(x, ZERO)){
+      return y;
+    } else if (eq(y, ZERO)){
+      return x;
+    } else {
       return _make(_blockAdd(x, y));
+    }
   }
 
   function sub(x, y){
     return _make(_sub(x, y));
   }
 
+  function blockSub(x, y){
+    return _make(_blockSub(x, y));
+  }
+
   function mult(x, y){
-    return _make(_mult(x, y));
+    if (eq(x, ZERO) || (eq(y, ZERO))){
+      return ZERO;
+    } else {
+      return _make(_mult(x, y));
+    }
   }
 
   function blockMult(x,y){
+    if (eq(x, ZERO) || (eq(y, ZERO))){
+      return ZERO;
+    } else {
     return _make(_blockMult(x,y));
   }
+}
 
   function divmod(x, y){
     return _divmod(x, y);
+  }
+
+  function modex(x, y){
+    return _make(_modex(x, y));
   }
 
   function _compareTo(x, y){
@@ -346,9 +401,11 @@
   exports.add = add;
   exports.blockAdd = blockAdd;
   exports.sub = sub;
+  exports.blockSub = blockSub;
   exports.mult = mult;
   exports.blockMult = blockMult;
   exports.divmod = divmod;
+  exports.modex = modex;
   exports.compareTo = compareTo;
   exports.lt = lt;
   exports.gt = gt;
