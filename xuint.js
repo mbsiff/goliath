@@ -14,8 +14,14 @@
     obj.blocks = new Uint16Array(size);
     obj.nBlocks = size;
 
-    obj.grow = function () {
-      let newSize = 2 * this.blocks.length;
+    obj.extend = function (newSize) {
+      this.nBlocks = newSize;
+      if (newSize > this.blocks.length) {
+        this.grow(newSize);
+      }
+    };
+
+    obj.grow = function (newSize) {
       let newBlocks = new Uint16Array(newSize);
       newBlocks.set(this.blocks);
       this.blocks = newBlocks;
@@ -24,7 +30,7 @@
     obj.addBlock = function() {
       this.nBlocks++;
       if (this.nBlocks >= this.blocks.length) {
-        this.grow();
+        this.grow(2 * this.blocks.length);
       }
     };
 
@@ -43,13 +49,9 @@
       }
     };
 
-    // adding in place to try to save memory allocations
-    // assume _this_ has enough room to add that
-    // so we assume 0 <= that <= this
-    // and so this grows by at most one bit?
-    // this is wrong as it stands since the last carry could propagate
-    // fix with some sort of inc on slice!
+    // adding in place
     obj.adduip = function (that) {
+      this.extend(1 + Math.max(this.nBlocks, that.nBlocks));
       let carry = 0;
       for (let i = 0; i < that.nBlocks; i++) {
         let total = this.blocks[i] + that.blocks[i] + carry;
@@ -91,6 +93,15 @@
         s += blockToBitString(this.blocks[i]);
       }
       return s;
+    };
+
+    obj.shiftLeft = function (k) {
+      // shift ls block, keep going as long as it extends...
+      // !!!
+      // get the amount that is shifted off
+      let lopped = x >>> (BITS_PER_BLOCK - k);
+      x <<= k;
+      // !!!
     };
 
     return obj;
