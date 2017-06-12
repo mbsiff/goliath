@@ -9,6 +9,30 @@
   const BASE_MASK = (1 << BITS_PER_BLOCK) - 1;
   const LOG_BLOCK_SIZE = 4;
 
+  const SHORT_LIMIT = 1 << BITS_PER_BLOCK;
+  const BASE = SHORT_LIMIT;
+
+  let sieve = new Uint8Array(SHORT_LIMIT);
+
+  for (let i = 4; i < sieve.length; i+=2) {
+    sieve[i] = 1;
+  }
+  let nextPrime = 3;
+  let primes = [2];
+  while (nextPrime < sieve.length) {
+    primes.push(nextPrime);
+    for (let i = nextPrime*2; i < sieve.length; i += nextPrime) {
+      sieve[i] = 1;
+    }
+    nextPrime += 2;
+    while (sieve[nextPrime] && nextPrime < sieve.length) {
+      nextPrime += 2;
+    }
+  }
+
+  const PRIMES = new Uint16Array(primes);
+
+
   function make(size) {
     let obj = {};
     obj.blocks = new Uint16Array(size);
@@ -27,11 +51,18 @@
       this.blocks = newBlocks;
     };
 
-    obj.addBlock = function() {
-      this.nBlocks++;
+    obj.trim = function () {
+      while (this.nBlocks > 1 && this.blocks[this.nBlocks-1] === 0) {
+        this.nBlocks--;
+      }
+    };
+
+    obj.appendBlock = function(x) {
       if (this.nBlocks >= this.blocks.length) {
         this.grow(2 * this.blocks.length);
       }
+      this.blocks[this.nBlocks] = x;
+      this.nBlocks++;
     };
 
     // increment (slice to end) in place
@@ -44,8 +75,7 @@
         carry = total >>> BITS_PER_BLOCK;
       }
       if (carry) {
-        this.blocks[this.nBlocks] = 1;
-        this.addBlock();
+        this.appendBlocks(1);
       }
     };
 
@@ -87,25 +117,73 @@
       }
     };
 
-    obj.toString = function () {
+    obj.toString = function (radix=2) {
       let s = '';
+      const MAPS = { 2: blockToBitString, 16: blockToHexString };
       for(let i = 0; i < this.nBlocks; i++) {
-        s += blockToBitString(this.blocks[i]);
+        s = MAPS[radix](this.blocks[i]) + s;
       }
-      return s;
+      if (s.length > 1) {
+        return s.replace(/^0*/, '');
+      } else {
+        return s;
+      }
     };
 
     obj.shiftLeft = function (k) {
-      // shift ls block, keep going as long as it extends...
-      // !!!
-      // get the amount that is shifted off
-      let lopped = x >>> (BITS_PER_BLOCK - k);
-      x <<= k;
-      // !!!
+      let kMask = (1 << k) - 1;
+      let kBar = BITS_PER_BLOCK - k;
+      let lopped = 0;
+      for (let i = 0; i < this.nBlocks; i++) {
+        let x = this.blocks[i];
+        let t = (x >>> kBar) & kMask;
+        this.blocks[i] = (x << k) | lopped;
+        lopped = t;
+      }
+      if (lopped) {
+        this.appendBlock(lopped);
+
+      }
+    };
+
+    // assume m is a short (block-sized) int
+    obj.modShort = function (m) {
+      let sum = 0;
+      for (let i = 0; i < this.nBlocks; i++) {
+        let x = this.blocks[i];
+        // might be able to optimize
+        // either by memoizing this modexp calc
+        // or even precomputing it across wide range
+        sum = (sum + x * shortModExp(BASE, i, m)) % m;
+      }
+      return sum;
+    };
+
+    obj.findSmallFactor = function () {
+      for (let p of PRIMES) {
+        if (this.modShort(p) === 0) {
+          return p;
+        }
+      }
+      return null;
     };
 
     return obj;
   }
+
+
+  function random(k) {
+    let size = Math.ceil(k / BITS_PER_BLOCK);
+    let x = make(size);
+    for (let i = 0; i < k; i++) {
+      if (Math.random() < 0.5) {
+        x.setBit(i);
+      }
+    }
+    x.trim();
+    return x;
+  }
+
 
   // assumes bitString well-formed
   function makeFromBinaryString(bitString) {
@@ -131,7 +209,31 @@
     return s;
   }
 
+  function blockToHexString(x) {
+    let s = '';
+    for (let i = 0; i < BITS_PER_BLOCK; i+=4) {
+      s = (x & 0xF).toString(16) + s;
+      x = x >>> 4;
+    }
+    return s;
+  }
+
+  function shortModExp(b, e, m) {
+    let y = 1;
+    let pow = b;
+    while (e) {
+      if (e & 1) {
+        y = (y * pow) % m;
+      }
+      pow = (pow * pow) % m;
+      e >>>= 1;
+    }
+    return y;
+  }
+
+
   exports.makeFromBinaryString = makeFromBinaryString;
   exports.make = make;
+  exports.random = random;
 
 })((typeof exports === 'undefined') ? this.xuint = {} : exports);
