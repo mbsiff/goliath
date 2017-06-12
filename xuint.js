@@ -65,6 +65,7 @@
       this.nBlocks++;
     };
 
+    // ??? this might be buggy still if start not 0?
     // increment (slice to end) in place
     // assumes this' block array has one more block to spare
     obj.incSlice = function (start=0) {
@@ -75,7 +76,7 @@
         carry = total >>> BITS_PER_BLOCK;
       }
       if (carry) {
-        this.appendBlocks(1);
+        this.appendBlock(1);
       }
     };
 
@@ -90,6 +91,28 @@
       }
       if (carry) {
         this.incSlice(that.nBlocks);
+      }
+    };
+
+    // adds by short n, in place
+    obj.addShort = function (n) {
+      let total = this.blocks[0] + n;
+      this.blocks[0] = total & BASE_MASK;
+      if (total >>> BITS_PER_BLOCK) {
+        this.incSlice(1);
+      }
+    };
+
+    // multiplies by short n, in place
+    obj.multShort = function (n) {
+      let carry = 0;
+      for (let i = 0; i < this.nBlocks; i++) {
+        let total = this.blocks[i] * n + carry;
+        this.blocks[i] = total & BASE_MASK;
+        carry = total >> BITS_PER_BLOCK;
+      }
+      if (carry) {
+        this.appendBlock(carry);
       }
     };
 
@@ -200,6 +223,16 @@
     return x;
   }
 
+  // assumes digits well-formed
+  function makeFromDecimalString(digits) {
+    let x = make(1);
+    for (let digit of digits) {
+      x.multShort(10);
+      x.addShort(digit.charCodeAt(0) - 48);
+    }
+    return x;
+  }
+
   function blockToBitString(x) {
     let s = '';
     for(let i = 0; i < BITS_PER_BLOCK; i++) {
@@ -232,7 +265,9 @@
   }
 
 
+
   exports.makeFromBinaryString = makeFromBinaryString;
+  exports.makeFromDecimalString = makeFromDecimalString;
   exports.make = make;
   exports.random = random;
 
