@@ -125,6 +125,26 @@
       }
     };
 
+    // subtracting in place
+    // assumes that is <= this
+    obj.sub = function (that) {
+      let borrow = 0;
+      for (let i = 0; i < that.nBlocks; i++) {
+        let diff = this.blocks[i] - that.blocks[i] - borrow;
+        if (diff < 0) {
+          this.blocks[i] = diff + BASE;
+          borrow = 1;
+        } else {
+          this.blocks[i] = diff;
+          borrow = 0;
+        }
+      }
+      if (borrow) {
+        throw new Error('this less than that');
+      }
+      this.trim();
+    };
+
     // multiplies by short n, in place
     obj.multShort = function (n) {
       let carry = 0;
