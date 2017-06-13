@@ -71,6 +71,18 @@
       this.nBlocks++;
     };
 
+    // resets blocks to 0 except for first block
+    // use second argument to reset number of blocks
+    obj.reset = function (n=0, resetBlockCount) {
+      this.blocks[0] = n;
+      for (let i = 1; i < this.nBlocks; i++) {
+        this.blocks[i] = 0;
+      }
+      if (resetBlockCount) {
+        this.nBlocks = 1;
+      }
+    }
+
     obj.isZero = function () {
       return this.nBlocks === 1 && this.blocks[0] === 0;
     };
@@ -307,11 +319,38 @@
   }
 
 
+  // z = x * y
+  // assumes z allocated...
+  function multInto(x, y, z) {
+    z.extend(x.nBlocks + y.nBlocks);
+    z.reset(0);
+    let carry = 0;
+    let k = 0;
+    for (let i = 0; i < y.nBlocks; i++){
+      k = i;
+      carry = 0;
+      let b = y.blocks[i];
+      if (b) {
+        for (let j = 0; j < x.nBlocks; j++) {
+          let t = x.blocks[j] * b + z.blocks[k] + carry;
+          z.blocks[k] = t & BASE_MASK;
+          carry = t >>> BITS_PER_BLOCK;
+          k++;
+        }
+        z.blocks[k] = carry;
+      }
+    }
+    z.trim();
+    return z;
+  }
+
+
 
   exports.makeFromBinaryString = makeFromBinaryString;
   exports.makeFromDecimalString = makeFromDecimalString;
   exports.toDecimalString = toDecimalString;
   exports.make = make;
   exports.random = random;
+  exports.mult = multInto;
 
 })((typeof exports === 'undefined') ? this.xuint = {} : exports);
