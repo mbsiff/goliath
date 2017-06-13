@@ -38,6 +38,12 @@
     obj.blocks = new Uint16Array(size);
     obj.nBlocks = size;
 
+    obj.copy = function () {
+      let cpy = make(this.nBlocks);
+      cpy.blocks.set(this.blocks.subarray(0, this.nBlocks));
+      return cpy;
+    }
+
     obj.extend = function (newSize) {
       this.nBlocks = newSize;
       if (newSize > this.blocks.length) {
@@ -63,6 +69,10 @@
       }
       this.blocks[this.nBlocks] = x;
       this.nBlocks++;
+    };
+
+    obj.isZero = function () {
+      return this.nBlocks === 1 && this.blocks[0] === 0;
     };
 
     // ??? this might be buggy still if start not 0?
@@ -114,6 +124,24 @@
       if (carry) {
         this.appendBlock(carry);
       }
+    };
+
+    // dividing by single block (short) integer
+    // writes quotient into target (assumed allocated)
+    // returns remainder since quotient written into target
+    // should allow for target to be itself (this)
+    obj.divShort = function(n, target) {
+      let rem = 0;
+      for (let i = this.nBlocks - 1; i >=0; i--) {
+        let high = rem;
+        let low = this.blocks[i];
+        let v = high * (1 << BITS_PER_BLOCK) + low;
+        let q = Math.floor(v / n);
+        target.blocks[i] = q;
+        rem = v - (q * n);
+      }
+      target.trim();
+      return rem;
     };
 
     obj.setBit = function(i, value=1) {
@@ -265,9 +293,24 @@
   }
 
 
+  function toDecimalString(x) {
+    if (x.isZero()) {
+      return '0';
+    }
+    let t = x.copy();
+    let s = '';
+    while (!t.isZero()) {
+      let d = t.divShort(10, t);
+      s = d + s;
+    }
+    return s;
+  }
+
+
 
   exports.makeFromBinaryString = makeFromBinaryString;
   exports.makeFromDecimalString = makeFromDecimalString;
+  exports.toDecimalString = toDecimalString;
   exports.make = make;
   exports.random = random;
 
