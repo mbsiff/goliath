@@ -1,6 +1,11 @@
 // arbitrary precision unsigned integers
 // using in-place, resizable typed arrays
 
+// usually using functions rather than methods
+// three-argument where _first_ is destination
+// and comments indicate if destrination can match others...
+// can we use assert on that??? do we care ????
+
 (function(exports){
   'use strict';
 
@@ -42,7 +47,7 @@
       let cpy = make(this.nBlocks);
       cpy.blocks.set(this.blocks.subarray(0, this.nBlocks));
       return cpy;
-    }
+    };
 
     obj.extend = function (newSize) {
       this.nBlocks = newSize;
@@ -81,7 +86,7 @@
       if (resetBlockCount) {
         this.nBlocks = 1;
       }
-    }
+    };
 
     obj.isZero = function () {
       return this.nBlocks === 1 && this.blocks[0] === 0;
@@ -365,6 +370,43 @@
   }
 
 
+  function countBits(x) {
+    let bits = ((x.nBlocks - 1) * BITS_PER_BLOCK) + 1;
+    let y = x.blocks[x.nBlocks - 1];
+    while (y >= 2) {
+      bits++;
+      y >>>= 1;
+    }
+    return bits;
+  }
+
+  // this does not use blocks...
+  // remains to be seen if overhead of that approach would be worth it
+  function divmodInto(dividend, divisor, q, r) {
+    // assume divisor not 0!
+    r.reset(0, true);
+    q.reset(0, true);
+    for (let i = countBits(dividend); i >= 0; i--) {
+      r.shiftLeft(1);
+      r.setBit(0, dividend.getBit(i));
+      q.shiftLeft(1);
+      if (compareTo(divisor, r) <= 0) {
+        console.log(toDecimalString(divisor));
+        console.log(toDecimalString(r));
+        r.sub(divisor);
+        q.setBit(0);
+      }
+    }
+  }
+
+  function compareTo(x, y) {
+    let n = x.nBlocks;
+    let d = n - y.nBlocks;
+    for (let i = n - 1; d === 0 && i >= 0; i--) {
+      d = x.blocks[i] - y.blocks[i];
+    }
+    return Math.sign(d);
+  }
 
   exports.makeFromBinaryString = makeFromBinaryString;
   exports.makeFromDecimalString = makeFromDecimalString;
@@ -372,5 +414,6 @@
   exports.make = make;
   exports.random = random;
   exports.mult = multInto;
+  exports.dm = divmodInto;
 
 })((typeof exports === 'undefined') ? this.xuint = {} : exports);
