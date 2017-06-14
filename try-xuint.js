@@ -2,14 +2,23 @@ let X = require('./xuint');
 
 // >>> divmod(213213123123123213, 987654321)
 // (215878287, 157495086)
-let a = X.makeFromDecimalString("213213123123123213");
-let b = X.makeFromDecimalString("987654321");
-let c = X.make(1);
-let d = X.make(1);
-X.dm(a, b, c, d);
-console.log(X.toDecimalString(c));
-console.log(X.toDecimalString(d));
+// let a = X.makeFromDecimalString("213213123123123213");
+// let b = X.makeFromDecimalString("987654321");
+// let c = X.make(1);
+// let d = X.make(1);
+// X.dm(a, b, c, d);
+// console.log(X.toDecimalString(c));
+// console.log(X.toDecimalString(d));
 
+// >>> pow(987654321, 213213123123123212, 213213123123123213)
+// 189034927585406181
+let m = X.makeFromDecimalString("213213123123123213");
+let b = X.makeFromDecimalString("987654321");
+let e = m.copy();
+e.sub(X.makeFromDecimalString("1"));
+let t = X.make(1);
+X.me(b, e, m, t);
+console.log(X.toDecimalString(t));
 
 // let a = X.makeFromDecimalString("213213123123123213");
 // let b = X.makeFromDecimalString("987654321");

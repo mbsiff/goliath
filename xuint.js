@@ -391,8 +391,6 @@
       r.setBit(0, dividend.getBit(i));
       q.shiftLeft(1);
       if (compareTo(divisor, r) <= 0) {
-        console.log(toDecimalString(divisor));
-        console.log(toDecimalString(r));
         r.sub(divisor);
         q.setBit(0);
       }
@@ -408,6 +406,64 @@
     return Math.sign(d);
   }
 
+
+
+  // this is a very crude object pool
+  // idea is to allocate temporary xuints only if
+  // none are available
+  // requires functions that use them to be very careful
+  // to return (unget) and _not_ reuse local pointers
+  // to those objects after ungetting
+  let objPool = {
+    stack: [],
+    get: function() {
+      if (this.stack.length > 0) {
+        return this.stack.pop();
+      } else {
+        return make(1000);  // !!!
+      }
+    },
+    unget: function (x) {
+      this.stack.push(x);
+      return null;
+    }
+  };
+
+
+
+  function modExp(b, e, m, target) {
+    let t = objPool.get();
+    let scratch = objPool.get();
+    let pow = b.copy();
+    target.reset(1);
+    for (let i = 0; i < e.nBlocks-1; i++) {
+      let x = e.blocks[i];
+      for (let j = 0; j < BITS_PER_BLOCK; j++) {
+        if (x & 1) {
+          multInto(target, pow, t);
+          divmodInto(t, m, scratch, target);
+        }
+        multInto(pow, pow, t);
+        divmodInto(t, m, scratch, pow);
+        x >>>= 1;
+      }
+    }
+    let x = e.blocks[e.nBlocks-1];
+    while (x) {
+      if (x & 1) {
+        multInto(target, pow, t);
+        divmodInto(t, m, scratch, target);
+      }
+      multInto(pow, pow, t);
+      divmodInto(t, m, scratch, pow);
+      x >>>= 1;
+    }
+    t = objPool.unget(t);
+    scratch = objPool.unget(scratch);
+    return target;
+  }
+
+
   exports.makeFromBinaryString = makeFromBinaryString;
   exports.makeFromDecimalString = makeFromDecimalString;
   exports.toDecimalString = toDecimalString;
@@ -415,5 +471,6 @@
   exports.random = random;
   exports.mult = multInto;
   exports.dm = divmodInto;
+  exports.me = modExp;
 
 })((typeof exports === 'undefined') ? this.xuint = {} : exports);
