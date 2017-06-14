@@ -464,6 +464,78 @@
   }
 
 
+  function reallocate(x, newSize) {
+    let newBlocks = new Uint16Array(newSize);
+    newBlocks.set(x.blocks.subarray(0, x.nBlocks));
+    x.blocks = newBlocks;
+    return x;
+  }
+
+  // guarantees that x is allocated to be at least newSize blocks
+  // and sets x's size to be newSize
+  // returns x
+  function resize(x, newSize) {
+    x.nBlocks = newSize;
+    if (newSize > x.blocks.length) {
+      reallocate(x, newSize);
+    }
+    return x;
+  }
+
+  // copies src to dst, returns dst
+  function copy(src, dst) {
+    if (src.nBlocks > dst.blocks.length) {
+      dst.blocks = new Uint16Array(src.blocks);
+    } else {
+      dst.blocks.set(src.blocks.subarray(0, src.nBlocks));
+    }
+    dst.nBlocks = src.nBlocks;
+    return dst;
+  }
+
+  // decrement, assumes x > 0
+  function decrement(x, start = 0) {
+    let borrow = 1;
+    let b = 0;
+    for (let i = start; borrow && i < x.nBlocks; i++) {
+      b = x.blocks[i];
+      if (b) {
+        x.blocks[i] = b - 1;
+        borrow = 0;
+      } else {
+        x.blocks[i] = BASE - 1;
+        borrow = 1;
+      }
+    }
+    if (borrow) {
+      throw new Error('cannot decrement 0');
+    }
+    if (x.nBlocks > 1 && b === 1) {
+      x.nBlocks--;
+    }
+    return x;
+  }
+
+
+!!!
+
+  function shiftRight(x, k = 1) {
+    let kMask = (1 << k) - 1;
+    let kBar = BITS_PER_BLOCK - k;
+    let lopped = 0;
+    for (let i = x.nBlocks - 1;  i >= 0; i--) {
+      let b = x.blocks[i];
+      let t = (b << kBar) & kMask;
+      x.blocks[i] = (b >>> k) | (lopped << kBar);
+      lopped = t;
+    }
+    if (lopped) {
+      this.appendBlock(lopped);
+
+    }
+    return x;
+  }
+
   exports.makeFromBinaryString = makeFromBinaryString;
   exports.makeFromDecimalString = makeFromDecimalString;
   exports.toDecimalString = toDecimalString;

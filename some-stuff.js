@@ -1,82 +1,65 @@
+// def isProbablyPrime(n, iters = 4):
+//     """Probabilistically checks whether n is prime.
+//
+//     Uses Miller-Rabin test. iters is the number of repetitions; if it
+//     returns True then n is prime with probability at least 1/2^iters;
+//     if False; then n is definitely composite.
+//     """
+//
+//     if n % 2 == 0: return False
+//     d = n - 1
+//     while d & 1 == 0:
+//         d = d >> 1
+//     for i in range(iters):
+//         a = random.randint(2, n-2)
+//         t = d
+//         y = pow(a,t,n)
+//         while t != n-1 and y != 1 and y != n-1:
+//             y = (y * y) % n
+//             t = t << 1
+//         if y != n-1 and t & 1 == 0:
+//             return False
+//     return True
 
-// this is a very crude object pool
-// idea is to allocate temporary xuints only if
-// none are available
-// requires functions that use them to be very careful
-// to return (unget) and _not_ reuse local pointers
-// to those objects after ungetting
-let objPool = {
-  stack: [],
-  get: function() {
-    if (this.stack.length > 0) {
-      return this.stack.pop();
-    } else {
-      return make(1);
-    }
-  },
-  unget: function (x) {
-    this.stack.push(x);
-    return null;
+
+// uses Miller-Rabin test. iters is the number of repetitions; if it
+//     returns True then n is prime with probability at least 1/2^iters;
+//     if False; then n is definitely composite.
+// assumes n > 2
+function millerRabin(n, iters=4) {
+  if (n.getBit(0) === 0) {
+    return false;
   }
-};
-
-
-function countBits(x) {
-  let bits = ((x.nBlocks - 1) * BITS_PER_BLOCK) + 1;
-  let y = x.blocks[x.nBlocks - 1];
-  while (y >= 2) {
-    bits++;
-    y >>>= 1;
+  let n1 = objPool.get();
+  let d = objPool.get();
+  let base = objPool.get();
+  let pow = objPool.get();
+  let exp = objPool.get();
+  copy(n, n1);
+  decrement(n1);
+  copy(n1, d);
+  while (d.getBit(0) === 0) {
+    d.shiftRight(1); // ...
   }
-  return bits;
-}
 
-// this does not use blocks...
-// remains to be seen if overhead of that approach would be worth it
-function divmodInto(dividend, divisor, q, r) {
-  // assume divisor not 0!
-  let i  = countBits(dividend);
-  r.reset(0, true);
-  q.reset(0, true);
-  for (let i = countBits(dividend); i >= 0; i--) {
-    shiftLeft(r, 1);
-    r.setBit(0, dividend.getBit(i));
-    shiftLeft(q, 1);
-    if (compareTo(divisor, r) <= 0) {
-      r.sub(y); // ...
-      q.setBit(0);
-    }
-  }
-}
-
-function modExp(b, e, m, target) {
-  let t = objPool.get();
-  let scratch = objPool.get();
-  let pow = b.copy();
-  target.reset(1);
-  for (let i = 0; i < e.nBlocks-1; i++) {
-    let x = e.blocks[i];
-    for (let j = 0; j < BITS_PER_BLOCK; j++) {
-      if (x & 1) {
-        multInto(target, pow, t);
-        divmodInto(t, m, scratch, target);
-      }
+  let couldBePrime = true;
+  for (let i = 0; couldBePrime && i < iters; i++) {
+    let rp = PRIMES[Math.floor(Math.random() * PRIMES.length)];
+    base.reset(rp, true);
+    copy(d, exp);
+    modExp(base, exp, n, pow);
+    // might be possible to squeeze a little more out of this...
+    while (!pow.isOne() && compareTo(pow, n1) && compareTo(exp, n1)) { // ...
       multInto(pow, pow, t);
-      divmodInto(t, m, scratch, pow);
-      x >>>= 1;
+      divmodInto(t, n, scratch, pow);
+      exp.shiftLeft(1);
     }
+    couldBePrime = exp.getBit(0) || compareTo(pow, n1) === 0;
   }
-  let x = e.blocks[e.nBlocks-1];
-  while (x) {
-    if (x & 1) {
-      multInto(target, pow, t);
-      divmodInto(t, m, scratch, target);
-    }
-    multInto(pow, pow, t);
-    divmodInto(t, m, scratch, pow);
-    x >>>= 1;
-  }
-  t = objPool.unget(t);
-  scratch = objPool.unget(scratch);
-  return target;
+  exp = objPool.get(exp);
+  pow = objPool.get(pow);
+  base = objPool.get(base);
+  d = objPool.unget(d);
+  n1 = objPool.unget(n1);
+  return couldBePrime;
 }
