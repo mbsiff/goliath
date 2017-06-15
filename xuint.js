@@ -76,21 +76,7 @@
       this.nBlocks++;
     };
 
-    // resets blocks to 0 except for first block
-    // use second argument to reset number of blocks
-    obj.reset = function (n=0, resetBlockCount) {
-      this.blocks[0] = n;
-      for (let i = 1; i < this.nBlocks; i++) {
-        this.blocks[i] = 0;
-      }
-      if (resetBlockCount) {
-        this.nBlocks = 1;
-      }
-    };
 
-    obj.isZero = function () {
-      return this.nBlocks === 1 && this.blocks[0] === 0;
-    };
 
     // ??? this might be buggy still if start not 0?
     // increment (slice to end) in place
@@ -346,9 +332,9 @@
 
   // z = x * y
   // assumes z allocated...
-  function multInto(x, y, z) {
+  function mult(x, y, z) {
     z.extend(x.nBlocks + y.nBlocks);
-    z.reset(0);
+    reset(z, 0);
     let carry = 0;
     let k = 0;
     for (let i = 0; i < y.nBlocks; i++){
@@ -382,10 +368,10 @@
 
   // this does not use blocks...
   // remains to be seen if overhead of that approach would be worth it
-  function divmodInto(dividend, divisor, q, r) {
+  function divmod(dividend, divisor, q, r) {
     // assume divisor not 0!
-    r.reset(0, true);
-    q.reset(0, true);
+    reset(r, 0, true);
+    reset(q, 0, true);
     for (let i = countBits(dividend); i >= 0; i--) {
       r.shiftLeft(1);
       r.setBit(0, dividend.getBit(i));
@@ -435,27 +421,27 @@
     let t = objPool.get();
     let scratch = objPool.get();
     let pow = b.copy();
-    target.reset(1);
+    reset(target, 1);
     for (let i = 0; i < e.nBlocks-1; i++) {
       let x = e.blocks[i];
       for (let j = 0; j < BITS_PER_BLOCK; j++) {
         if (x & 1) {
-          multInto(target, pow, t);
-          divmodInto(t, m, scratch, target);
+          mult(target, pow, t);
+          divmod(t, m, scratch, target);
         }
-        multInto(pow, pow, t);
-        divmodInto(t, m, scratch, pow);
+        mult(pow, pow, t);
+        divmod(t, m, scratch, pow);
         x >>>= 1;
       }
     }
     let x = e.blocks[e.nBlocks-1];
     while (x) {
       if (x & 1) {
-        multInto(target, pow, t);
-        divmodInto(t, m, scratch, target);
+        mult(target, pow, t);
+        divmod(t, m, scratch, target);
       }
-      multInto(pow, pow, t);
-      divmodInto(t, m, scratch, pow);
+      mult(pow, pow, t);
+      divmod(t, m, scratch, pow);
       x >>>= 1;
     }
     t = objPool.unget(t);
@@ -464,23 +450,23 @@
   }
 
 
-  function reallocate(x, newSize) {
-    let newBlocks = new Uint16Array(newSize);
-    newBlocks.set(x.blocks.subarray(0, x.nBlocks));
-    x.blocks = newBlocks;
-    return x;
-  }
+  // function reallocate(x, newSize) {
+  //   let newBlocks = new Uint16Array(newSize);
+  //   newBlocks.set(x.blocks.subarray(0, x.nBlocks));
+  //   x.blocks = newBlocks;
+  //   return x;
+  // }
 
   // guarantees that x is allocated to be at least newSize blocks
   // and sets x's size to be newSize
   // returns x
-  function resize(x, newSize) {
-    x.nBlocks = newSize;
-    if (newSize > x.blocks.length) {
-      reallocate(x, newSize);
-    }
-    return x;
-  }
+  // function resize(x, newSize) {
+  //   x.nBlocks = newSize;
+  //   if (newSize > x.blocks.length) {
+  //     reallocate(x, newSize);
+  //   }
+  //   return x;
+  // }
 
   // copies src to dst, returns dst
   function copy(src, dst) {
@@ -491,6 +477,16 @@
     }
     dst.nBlocks = src.nBlocks;
     return dst;
+  }
+
+  function getBit(x, i) {
+    const offset = i & BLOCK_MASK;
+    const n = i >>> LOG_BLOCK_SIZE;
+    if (n < x.nBlocks && (x.blocks[n] & (1 << offset))) {
+      return 1;
+    } else {
+      return 0;
+    }
   }
 
   // decrement, assumes x > 0
@@ -517,32 +513,96 @@
   }
 
 
-!!!
-
   function shiftRight(x, k = 1) {
-    let kMask = (1 << k) - 1;
     let kBar = BITS_PER_BLOCK - k;
     let lopped = 0;
     for (let i = x.nBlocks - 1;  i >= 0; i--) {
       let b = x.blocks[i];
-      let t = (b << kBar) & kMask;
-      x.blocks[i] = (b >>> k) | (lopped << kBar);
-      lopped = t;
+      x.blocks[i] = (b >>> k) | lopped;
+      lopped = b << kBar;
     }
-    if (lopped) {
-      this.appendBlock(lopped);
-
+    if (x.nBlocks > 1 && x.blocks[x.nBlocks - 1] === 0) {
+      x.nBlocks--;
     }
     return x;
   }
+
+  // resets blocks to 0 except for first block
+  // uses third argument to reset number of blocks
+  // is that third arg needed?
+  function reset(x, n=0, resetBlockCount) {
+    x.blocks[0] = n;
+    if (resetBlockCount) {
+      x.nBlocks = 1;
+    } else {
+      x.blocks.fill(0, 1, x.nBlocks);
+    }
+  }
+
+  // function isZero(x) {
+  //   return (x.nBlocks === 1 && x.blocks[0] === 0);
+  // }
+
+  function isOne(x) {
+    return (x.nBlocks === 1 && x.blocks[0] === 1);
+  }
+
+
+  // uses Miller-Rabin test. iters is the number of repetitions; if it
+  //     returns True then n is prime with probability at least 1/2^iters;
+  //     if False; then n is definitely composite.
+  // assumes n > 2
+  function millerRabin(n, iters=4) {
+    if (getBit(n, 0) === 0) {
+      return false;
+    }
+    let n1 = objPool.get();
+    let d = objPool.get();
+    let base = objPool.get();
+    let pow = objPool.get();
+    let exp = objPool.get();
+    let t = objPool.get();
+    let scratch = objPool.get();
+    copy(n, n1);
+    decrement(n1);
+    copy(n1, d);
+    while (getBit(d, 0) === 0) {
+      shiftRight(d, 1);
+    }
+    let couldBePrime = true;
+    for (let i = 0; couldBePrime && i < iters; i++) {
+      let rp = PRIMES[Math.floor(Math.random() * PRIMES.length)];
+      reset(base, rp, true);
+      copy(d, exp);
+      modExp(base, exp, n, pow);
+      // might be possible to squeeze a little more out of this...
+      while (!isOne(pow) && compareTo(pow, n1) && compareTo(exp, n1)) {
+        mult(pow, pow, t);
+        divmod(t, n, scratch, pow);
+        //shiftLeft(exp, 1);
+        exp.shiftLeft(1);
+      }
+      couldBePrime = getBit(exp, 0) === 1 || compareTo(pow, n1) === 0;
+    }
+    scratch = objPool.get(scratch);
+    t = objPool.unget(t);
+    exp = objPool.get(exp);
+    pow = objPool.get(pow);
+    base = objPool.get(base);
+    d = objPool.unget(d);
+    n1 = objPool.unget(n1);
+    return couldBePrime;
+  }
+
 
   exports.makeFromBinaryString = makeFromBinaryString;
   exports.makeFromDecimalString = makeFromDecimalString;
   exports.toDecimalString = toDecimalString;
   exports.make = make;
   exports.random = random;
-  exports.mult = multInto;
-  exports.dm = divmodInto;
+  exports.mult = mult;
+  exports.dm = divmod;
   exports.me = modExp;
+  exports.mr = millerRabin;
 
 })((typeof exports === 'undefined') ? this.xuint = {} : exports);

@@ -1,15 +1,19 @@
 let X = require('./xuint');
 
-let k = 10000;
-let n = 
-const ONE = X.makeFromDecimalString("1");
-while (X.compareTo(ONE, X.me(TWO, n1, n, t)) !== 0) {
-  n.incSlice();
-  n1.incSlice();
-}
-console.log(X.toDecimalString(n));
-
-console.time('random');
+// these two numbers are 40-digit primes
+let a = X.makeFromDecimalString('2425967623052370772757633156976982469681');
+let b = X.makeFromDecimalString('5991810554633396517767024967580894321153');
+let c = X.make(1);
+X.mult(a, b, c);
+console.time('mr');
+console.log(X.mr(a));
+console.timeEnd('mr');
+console.time('mr');
+console.log(X.mr(b));
+console.timeEnd('mr');
+console.time('mr');
+console.log(X.mr(c));
+console.timeEnd('mr');
 // let x = X.random(k);
 // console.timeEnd('random');
 //

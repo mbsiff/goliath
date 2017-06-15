@@ -27,7 +27,7 @@
 //     if False; then n is definitely composite.
 // assumes n > 2
 function millerRabin(n, iters=4) {
-  if (n.getBit(0) === 0) {
+  if (getBit(n, 0) === 0) {
     return false;
   }
   let n1 = objPool.get();
@@ -38,23 +38,22 @@ function millerRabin(n, iters=4) {
   copy(n, n1);
   decrement(n1);
   copy(n1, d);
-  while (d.getBit(0) === 0) {
-    d.shiftRight(1); // ...
+  while (getBit(d, 0) === 0) {
+    shiftRight(d, 1);
   }
-
   let couldBePrime = true;
   for (let i = 0; couldBePrime && i < iters; i++) {
     let rp = PRIMES[Math.floor(Math.random() * PRIMES.length)];
-    base.reset(rp, true);
+    reset(base, rp, true);  // ...
     copy(d, exp);
     modExp(base, exp, n, pow);
     // might be possible to squeeze a little more out of this...
-    while (!pow.isOne() && compareTo(pow, n1) && compareTo(exp, n1)) { // ...
-      multInto(pow, pow, t);
-      divmodInto(t, n, scratch, pow);
-      exp.shiftLeft(1);
+    while (!isOne(pow) && compareTo(pow, n1) && compareTo(exp, n1)) {
+      mult(pow, pow, t);
+      divmod(t, n, scratch, pow);
+      shiftLeft(exp, 1);
     }
-    couldBePrime = exp.getBit(0) || compareTo(pow, n1) === 0;
+    couldBePrime = getBit(exp, 0) || compareTo(pow, n1) === 0;
   }
   exp = objPool.get(exp);
   pow = objPool.get(pow);
