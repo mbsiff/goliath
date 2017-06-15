@@ -1,19 +1,30 @@
 let X = require('./xuint');
 
+let a = X.make(65535);
+let b = X.make(65535);
+let c = X.make(0);
+//X.add2(a, b);
+console.log('' + a);
+X.add3(a, b, c);
+console.log('' + c);
+console.log(a);
+console.log(c);
+
+
 // these two numbers are 40-digit primes
-let a = X.makeFromDecimalString('2425967623052370772757633156976982469681');
-let b = X.makeFromDecimalString('5991810554633396517767024967580894321153');
-let c = X.make(1);
-X.mult(a, b, c);
-console.time('mr');
-console.log(X.mr(a));
-console.timeEnd('mr');
-console.time('mr');
-console.log(X.mr(b));
-console.timeEnd('mr');
-console.time('mr');
-console.log(X.mr(c));
-console.timeEnd('mr');
+// let a = X.makeFromDecimalString('2425967623052370772757633156976982469681');
+// let b = X.makeFromDecimalString('5991810554633396517767024967580894321153');
+// let c = X.make(1);
+// X.mult(a, b, c);
+// console.time('mr');
+// console.log(X.mr(a));
+// console.timeEnd('mr');
+// console.time('mr');
+// console.log(X.mr(b));
+// console.timeEnd('mr');
+// console.time('mr');
+// console.log(X.mr(c));
+// console.timeEnd('mr');
 // let x = X.random(k);
 // console.timeEnd('random');
 //
