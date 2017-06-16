@@ -80,6 +80,7 @@
       } else {
         throw new RangeError('cannot convert from string "' + x + '"');
       }
+    } else {
       throw new TypeError('invalid source');
     }
   }
@@ -220,16 +221,99 @@
     x.a[x.n - 1] = b;
   }
 
+  function _setToSmall(x, n) {
+    x.a[0] = n;
+    x.n = 1;
+    x.sign = n ? Math.sign(n) : 1;
+  }
+
   function _trim(x) {
     while (x.n > 1 && x.a[x.n-1] === 0) {
       x.n--;
     }
   }
 
-  // -----------------------------------------------------------
-  var isZero = x => (x.n === 1) && (x.a[0] === 0);
-  var isOne = x => (x.n === 1) && (x.a[0] === 1);
 
+  // -----------------------------------------------------------
+  // bits
+
+  // returns number of bits in unsigned x
+  // (0 requires 1 bit)
+  function countBits(x) {
+    let bits = ((x.n - 1) * BITS_PER_BLOCK) + 1;
+    let y = x.a[x.n - 1];
+    while (y >= 2) {
+      bits++;
+      y >>>= 1;
+    }
+    return bits;
+  }
+
+  function _setBit(x, i, value=1) {
+    const offset = i & BLOCK_MASK;
+    const n = i >>> LOG_BLOCK_SIZE;
+    if (n < x.n) {
+      if (value) {
+        x.a[n] |= (1 << offset);
+      } else {
+        x.a[n] &= (~ (1 << offset));
+      }
+    } else {
+      throw new RangeError('bit index ' + i + ' is out of bounds');
+    }
+  }
+
+  function _getBit(x, i) {
+    const offset = i & BLOCK_MASK;
+    const n = i >>> LOG_BLOCK_SIZE;
+    if (n < x.n && (x.a[n] & (1 << offset))) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+
+  // randomizes x into a k-bit number
+  // sets sign to be non-negative
+  function randomize(x, k) {
+    let size = Math.ceil(k / BITS_PER_BLOCK);
+    _resize(x, size);
+    x.a.fill(0, 0, x.n);
+    for (let i = 0; i < k; i++) {
+      if (Math.random() < 0.5) {
+        _setBit(x, i, 1);
+      }
+    }
+    return x;
+  }
+
+
+  // -----------------------------------------------------------
+  // comparison
+
+  var isZero = x => (x.n === 1) && (x.a[0] === 0);
+  var isOne = x => (x.n === 1) && (x.sign === 1) && (x.a[0] === 1);
+
+  function _uCompare(x, y) {
+    let n = x.n;
+    let d = n - y.n;
+    for (let i = n - 1; d === 0 && i >= 0; i--) {
+      d = x.a[i] - y.a[i];
+    }
+    return Math.sign(d);
+  }
+
+  function compare(x, y) {
+    if (x.sign === y.sign) {
+      if (x.sign === 1) {
+        return _uCompare(x, y);
+      } else {
+        return _uCompare(y, x);
+      }
+    } else {
+      return x.sign;
+    }
+  }
 
   // -----------------------------------------------------------
   // shifting
@@ -344,16 +428,56 @@
     return z;
   }
 
-  //
+  // ... signed addition ...
+
 
   // -----------------------------------------------------------
   // subtraction
 
-  // decrement
-  //subSmall
-  //sub2
-  //sub3
+  // unsigned decrement, assumes x > 0
+  function _uDecrement(x, start = 0) {
+    let borrow = 1;
+    let b = 0;
+    for (let i = start; borrow && i < x.n; i++) {
+      b = x.a[i];
+      if (b) {
+        x.a[i] = b - 1;
+        borrow = 0;
+      } else {
+        x.a[i] = BASE - 1;
+        borrow = 1;
+      }
+    }
+    if (borrow) {
+      throw new Error('cannot decrement 0');
+    }
+    if (x.n > 1 && b === 1) {
+      x.n--;
+    }
+    return x;
+  }
 
+  // unsigned subtract y from x
+  // assumes y <= x
+  function _uSub(x, y) {
+    let borrow = 0;
+    for (let i = 0; i < y.n; i++) {
+      let diff = x.a[i] - y.a[i] - borrow;
+      if (diff < 0) {
+        x.a[i] = diff + BASE;
+        borrow = 1;
+      } else {
+        x.a[i] = diff;
+        borrow = 0;
+      }
+    }
+    if (borrow) {
+      throw new Error('subtrahend greater than minuend');
+    }
+    _trim(x);
+  }
+
+  // ...
 
 
   // -----------------------------------------------------------
@@ -364,16 +488,49 @@
   // if y not specified, multiplies in place
   function multSmall(x, n, y) {
     y = y ? _resize(y, x.n) : x;
-    let carry = 0;
-    for (let i = 0; i < x.n; i++) {
-      let total = x.a[i] * n + carry;
-      y.a[i] = total & BASE_MASK;
-      carry = total >> BITS_PER_BLOCK;
+    if (n === 0) {
+      _setToSmall(y, 0);
+    } else {
+      let carry = 0;
+      for (let i = 0; i < x.n; i++) {
+        let total = x.a[i] * n + carry;
+        y.a[i] = total & BASE_MASK;
+        carry = total >> BITS_PER_BLOCK;
+      }
+      if (carry) {
+        _appendBlock(y, carry);
+      }
+      y.sign = x.sign * Math.sign(n);
     }
-    if (carry) {
-      _appendBlock(y, carry);
-    }
+    return y;
   }
+
+  // unsigned multiplication: z = x * y
+  // assumes z !== x, z !== y
+  function _uMult(x, y, z) {
+    _resize(z, x.n + y.n);
+    z.a.fill(0, 0, z.n);
+    let carry = 0;
+    let k = 0;
+    for (let i = 0; i < y.n; i++){
+      k = i;
+      carry = 0;
+      let b = y.a[i];
+      if (b) {
+        for (let j = 0; j < x.n; j++) {
+          let t = x.a[j] * b + z.a[k] + carry;
+          z.a[k] = t & BASE_MASK;
+          carry = t >>> BITS_PER_BLOCK;
+          k++;
+        }
+        z.a[k] = carry;
+      }
+    }
+    _trim(z);
+    return z;
+  }
+
+  // ...
 
 
   // -----------------------------------------------------------
@@ -398,112 +555,44 @@
     return rem;
   }
 
-
-
-
-
-
-
-
-    //
-    // // subtracting in place
-    // // assumes that is <= this
-    // obj.sub = function (that) {
-    //   let borrow = 0;
-    //   for (let i = 0; i < that.nBlocks; i++) {
-    //     let diff = this.blocks[i] - that.blocks[i] - borrow;
-    //     if (diff < 0) {
-    //       this.blocks[i] = diff + BASE;
-    //       borrow = 1;
-    //     } else {
-    //       this.blocks[i] = diff;
-    //       borrow = 0;
-    //     }
-    //   }
-    //   if (borrow) {
-    //     throw new Error('this less than that');
-    //   }
-    //   this.trim();
-    // };
-    //
-
-    //
-
-    //
-    // obj.setBit = function(i, value=1) {
-    //   const offset = i & BLOCK_MASK;
-    //   const n = i >>> LOG_BLOCK_SIZE;
-    //   if (n < this.nBlocks) {
-    //     if (value) {
-    //       this.blocks[n] |= (1 << offset);
-    //     } else {
-    //       this.blocks[n] &= (~ (1 << offset));
-    //     }
-    //   } else {
-    //     throw new RangeError('bit index ' + i + ' is out of bounds');
-    //   }
-    // };
-    //
-    // obj.getBit = function(i) {
-    //   const offset = i & BLOCK_MASK;
-    //   const n = i >>> LOG_BLOCK_SIZE;
-    //   if (n < this.nBlocks && (this.blocks[n] & (1 << offset))) {
-    //     return 1;
-    //   } else {
-    //     return 0;
-    //   }
-    // };
-    //
-    //
-    //
-
-    //
-    // // assume m is a short (block-sized) int
-    // obj.modShort = function (m) {
-    //   let sum = 0;
-    //   for (let i = 0; i < this.nBlocks; i++) {
-    //     let x = this.blocks[i];
-    //     // might be able to optimize
-    //     // either by memoizing this modexp calc
-    //     // or even precomputing it across wide range
-    //     sum = (sum + x * shortModExp(BASE, i, m)) % m;
-    //   }
-    //   return sum;
-    // };
-
-  //   obj.findSmallFactor = function () {
-  //     for (let p of PRIMES) {
-  //       if (this.modShort(p) === 0) {
-  //         return p;
-  //       }
-  //     }
-  //     return null;
-  //   };
-  //
-  //   return obj;
-  // }
-  //
-  //
-  // function random(k) {
-  //   let size = Math.ceil(k / BITS_PER_BLOCK);
-  //   let x = make(size);
-  //   for (let i = 0; i < k; i++) {
-  //     if (Math.random() < 0.5) {
-  //       x.setBit(i);
-  //     }
+  // not sure if this version is needed any more
+  // function modSmall(x, m) {
+  //   let sum = 0;
+  //   for (let i = 0; i < x.n; i++) {
+  //     sum = (sum + x.a[i] * _modExpSmall(BASE, i, m)) % m;
   //   }
-  //   x.trim();
-  //   return x;
+  //   return sum;
   // }
-  //
 
+  // division is via bits, not via blocks
+  // it is possible to emulate long division over blocks using
+  // a sort of Newton's Method/binary search to do single step
+  // but seems at least as expensive if not more than this way
 
+  // sets q, r as: dividend = divisor*q + r
+  // assumes divisor !== 0
+  function _uDiv(dividend, divisor, q, r) {
+    _setToSmall(r, 0);
+    _setToSmall(q, 0);
+    for (let i = countBits(dividend); i >= 0; i--) {
+      shiftLeft(r, 1);
+      _setBit(r, 0, _getBit(dividend, i));
+      shiftLeft(q, 1);
+      if (_uCompare(divisor, r) <= 0) {
+        _uSub(r, divisor);
+        _setBit(q, 0, 1);
+      }
+    }
+  }
 
+  // ...
 
+  // -----------------------------------------------------------
+  // modular exponentiation
 
-
-  //
-  // function shortModExp(b, e, m) {
+  // mod exp via repeated squaring on small numbers
+  // not sure if this version is needed any more
+  // function _modExpSmall(b, e, m) {
   //   let y = 1;
   //   let pow = b;
   //   while (e) {
@@ -515,215 +604,61 @@
   //   }
   //   return y;
   // }
-  //
-  //
-  //
 
+  // compute b^e mod m into target
+  // assumes unsigned!
+  var modExp;
+  {
+    let pow = _allocate(DEFAULT_SIZE);
+    let t = _allocate(DEFAULT_SIZE);
+    let scratch = _allocate(DEFAULT_SIZE);
+    modExp = function (b, e, m, target) {
+      copy(b, pow);
+      _setToSmall(target, 1);
+      for (let i = 0; i < e.n-1; i++) {
+        let x = e.a[i];
+        for (let j = 0; j < BITS_PER_BLOCK; j++) {
+          if (x & 1) {
+            _uMult(target, pow, t);
+            _uDiv(t, m, scratch, target);
+          }
+          _uMult(pow, pow, t);
+          _uDiv(t, m, scratch, pow);
+          x >>>= 1;
+        }
+      }
+      let x = e.a[e.n-1];
+      while (x) {
+        if (x & 1) {
+          _uMult(target, pow, t);
+          _uDiv(t, m, scratch, target);
+        }
+        _uMult(pow, pow, t);
+        _uDiv(t, m, scratch, pow);
+        x >>>= 1;
+      }
+      return target;
+    };
+  }
 
-  // z = x * y
-  // assumes z allocated...
-  // function mult(x, y, z) {
-  //   z.extend(x.nBlocks + y.nBlocks);
-  //   reset(z, 0);
-  //   let carry = 0;
-  //   let k = 0;
-  //   for (let i = 0; i < y.nBlocks; i++){
-  //     k = i;
-  //     carry = 0;
-  //     let b = y.blocks[i];
-  //     if (b) {
-  //       for (let j = 0; j < x.nBlocks; j++) {
-  //         let t = x.blocks[j] * b + z.blocks[k] + carry;
-  //         z.blocks[k] = t & BASE_MASK;
-  //         carry = t >>> BITS_PER_BLOCK;
-  //         k++;
-  //       }
-  //       z.blocks[k] = carry;
+  // -----------------------------------------------------------
+  // number theory
+
+  // function findSmallFactor(x) {
+  //   for (let p of PRIMES) {
+  //     if (divModSmall(x, p) === 0) {
+  //       return p;
   //     }
   //   }
-  //   z.trim();
-  //   return z;
-  // }
-
-
-  // function countBits(x) {
-  //   let bits = ((x.nBlocks - 1) * BITS_PER_BLOCK) + 1;
-  //   let y = x.blocks[x.nBlocks - 1];
-  //   while (y >= 2) {
-  //     bits++;
-  //     y >>>= 1;
-  //   }
-  //   return bits;
-  // }
-
-  // this does not use blocks...
-  // remains to be seen if overhead of that approach would be worth it
-  // function divmod(dividend, divisor, q, r) {
-  //   // assume divisor not 0!
-  //   reset(r, 0, true);
-  //   reset(q, 0, true);
-  //   for (let i = countBits(dividend); i >= 0; i--) {
-  //     r.shiftLeft(1);
-  //     r.setBit(0, dividend.getBit(i));
-  //     q.shiftLeft(1);
-  //     if (compareTo(divisor, r) <= 0) {
-  //       r.sub(divisor);
-  //       q.setBit(0);
-  //     }
-  //   }
-  // }
-  //
-  // function compareTo(x, y) {
-  //   let n = x.nBlocks;
-  //   let d = n - y.nBlocks;
-  //   for (let i = n - 1; d === 0 && i >= 0; i--) {
-  //     d = x.blocks[i] - y.blocks[i];
-  //   }
-  //   return Math.sign(d);
+  //   return null;
   // }
 
 
 
-  // this is a very crude object pool
-  // idea is to allocate temporary xuints only if
-  // none are available
-  // requires functions that use them to be very careful
-  // to return (unget) and _not_ reuse local pointers
-  // to those objects after ungetting
-  // let objPool = {
-  //   stack: [],
-  //   get: function() {
-  //     if (this.stack.length > 0) {
-  //       return this.stack.pop();
-  //     } else {
-  //       return make(1000);  // !!!
-  //     }
-  //   },
-  //   unget: function (x) {
-  //     this.stack.push(x);
-  //     return null;
-  //   }
-  // };
-
-
-
-  // function modExp(b, e, m, target) {
-  //   let t = objPool.get();
-  //   let scratch = objPool.get();
-  //   let pow = b.copy();
-  //   reset(target, 1);
-  //   for (let i = 0; i < e.nBlocks-1; i++) {
-  //     let x = e.blocks[i];
-  //     for (let j = 0; j < BITS_PER_BLOCK; j++) {
-  //       if (x & 1) {
-  //         mult(target, pow, t);
-  //         divmod(t, m, scratch, target);
-  //       }
-  //       mult(pow, pow, t);
-  //       divmod(t, m, scratch, pow);
-  //       x >>>= 1;
-  //     }
-  //   }
-  //   let x = e.blocks[e.nBlocks-1];
-  //   while (x) {
-  //     if (x & 1) {
-  //       mult(target, pow, t);
-  //       divmod(t, m, scratch, target);
-  //     }
-  //     mult(pow, pow, t);
-  //     divmod(t, m, scratch, pow);
-  //     x >>>= 1;
-  //   }
-  //   t = objPool.unget(t);
-  //   scratch = objPool.unget(scratch);
-  //   return target;
-  // }
-  //
-  //
-  // // function reallocate(x, newSize) {
-  // //   let newBlocks = new Uint16Array(newSize);
-  // //   newBlocks.set(x.blocks.subarray(0, x.nBlocks));
-  // //   x.blocks = newBlocks;
-  // //   return x;
-  // // }
-  //
-  // // guarantees that x is allocated to be at least newSize blocks
-  // // and sets x's size to be newSize
-  // // returns x
-  // // function resize(x, newSize) {
-  // //   x.nBlocks = newSize;
-  // //   if (newSize > x.blocks.length) {
-  // //     reallocate(x, newSize);
-  // //   }
-  // //   return x;
-  // // }
-  //
-  // // copies src to dst, returns dst
-  // // function copy(src, dst) {
-  // //   if (src.nBlocks > dst.blocks.length) {
-  // //     dst.blocks = new Uint16Array(src.blocks);
-  // //   } else {
-  // //     dst.blocks.set(src.blocks.subarray(0, src.nBlocks));
-  // //   }
-  // //   dst.nBlocks = src.nBlocks;
-  // //   return dst;
-  // // }
-  //
-  // function getBit(x, i) {
-  //   const offset = i & BLOCK_MASK;
-  //   const n = i >>> LOG_BLOCK_SIZE;
-  //   if (n < x.nBlocks && (x.blocks[n] & (1 << offset))) {
-  //     return 1;
-  //   } else {
-  //     return 0;
-  //   }
-  // }
-  //
-  // // decrement, assumes x > 0
-  // function decrement(x, start = 0) {
-  //   let borrow = 1;
-  //   let b = 0;
-  //   for (let i = start; borrow && i < x.nBlocks; i++) {
-  //     b = x.blocks[i];
-  //     if (b) {
-  //       x.blocks[i] = b - 1;
-  //       borrow = 0;
-  //     } else {
-  //       x.blocks[i] = BASE - 1;
-  //       borrow = 1;
-  //     }
-  //   }
-  //   if (borrow) {
-  //     throw new Error('cannot decrement 0');
-  //   }
-  //   if (x.nBlocks > 1 && b === 1) {
-  //     x.nBlocks--;
-  //   }
-  //   return x;
-  // }
-  //
-  //
-
-  //
-  // // resets blocks to 0 except for first block
-  // // uses third argument to reset number of blocks
-  // // is that third arg needed?
-  // function reset(x, n=0, resetBlockCount) {
-  //   x.blocks[0] = n;
-  //   if (resetBlockCount) {
-  //     x.nBlocks = 1;
-  //   } else {
-  //     x.blocks.fill(0, 1, x.nBlocks);
-  //   }
-  // }
-  //
-
-  //
-  //
-  // // uses Miller-Rabin test. iters is the number of repetitions; if it
-  // //     returns True then n is prime with probability at least 1/2^iters;
-  // //     if False; then n is definitely composite.
-  // // assumes n > 2
+  // Miller-Rabin test. iters is the number of repetitions; if it
+  // returns True then n is prime with probability at least 1/2^iters;
+  // if False; then n is definitely composite.
+  // assumes n > 2
   // function millerRabin(n, iters=4) {
   //   if (getBit(n, 0) === 0) {
   //     return false;
@@ -770,6 +705,9 @@
   exports.make = make;
   exports.add2 = add2;
   exports.add3 = add3;
+  exports.me = modExp;
+  exports.randomize = randomize;
+  exports.sub = _uSub;
   // exports.copy = copy;
 
 

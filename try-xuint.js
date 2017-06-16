@@ -1,15 +1,36 @@
 let X = require('./xuint');
 
-let a = X.make(65535);
-let b = X.make(65535);
-let c = X.make(0);
-//X.add2(a, b);
-console.log('' + a);
-X.add3(a, b, c);
-console.log('' + c);
-console.log(a);
-console.log(c);
+// >>> pow(987654321, 213213123123123212, 213213123123123213)
+// 189034927585406181
+let m = X.make("213213123123123213");
+let b = X.make("987654321");
+let e = X.make('' + m);
+let t = X.make(1);
+X.sub(e, t);
+X.me(b, e, m, t);
+console.log('' + t);
 
+// // >>> divmod(213213123123123213, 987654321)
+// // (215878287, 157495086)
+// let a = X.make("213213123123123213");
+// let b = X.make("987654321");
+// let c = X.make(0);
+// let d = X.make(0);
+// X.ud(a, b, c, d);
+// console.log('' + c);
+// console.log('' + d);
+// console.log(c);
+// console.log(d);
+
+
+// let a = X.make('213213123123123213');
+// let b = X.make('987654321');
+// let c = X.make(0);
+// X.um(a, b, c);
+// console.log('' + c);
+// console.log(a);
+// console.log(b);
+// console.log(c);
 
 // these two numbers are 40-digit primes
 // let a = X.makeFromDecimalString('2425967623052370772757633156976982469681');
@@ -46,15 +67,7 @@ console.log(c);
 //   x.incSlice();
 // }
 
-// >>> divmod(213213123123123213, 987654321)
-// (215878287, 157495086)
-// let a = X.makeFromDecimalString("213213123123123213");
-// let b = X.makeFromDecimalString("987654321");
-// let c = X.make(1);
-// let d = X.make(1);
-// X.dm(a, b, c, d);
-// console.log(X.toDecimalString(c));
-// console.log(X.toDecimalString(d));
+
 
 // >>> pow(987654321, 213213123123123212, 213213123123123213)
 // 189034927585406181
