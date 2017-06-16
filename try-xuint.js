@@ -1,13 +1,24 @@
 let X = require('./xuint');
 
-// >>> pow(987654321, 213213123123123212, 213213123123123213)
-// 189034927585406181
+// // >>> pow(987654321, 213213123123123212, 213213123123123213)
+// // 189034927585406181
 let m = X.make("213213123123123213");
 let b = X.make("987654321");
 let e = X.make('' + m);
 let t = X.make(1);
-X.sub(e, t);
+// X.sub(e, t);
+// X.me(b, e, m, t);
+// console.log('' + t);
+
+console.time('me');
+X.randomize(b, 50);
+X.randomize(e, 100);
+X.randomize(m, 200);  // when this is big: subtrahend error!!!
 X.me(b, e, m, t);
+console.timeEnd('me');
+console.log('' + b);
+console.log('' + e);
+console.log('' + m);
 console.log('' + t);
 
 // // >>> divmod(213213123123123213, 987654321)
