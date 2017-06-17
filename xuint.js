@@ -9,6 +9,17 @@
 // BITS_PER_BLOCK are powers of 2
 // in this case 16
 
+// "small" refers to regular JS integers that fit within block
+
+
+// !!!
+// test that uSub is fixed
+// make sure various small arguments work properly...
+// then add/fix signs
+// set exports
+// more thorough testing...
+
+
 (function(exports){
   'use strict';
 
@@ -359,8 +370,8 @@
   // addition
 
   // increments x
-  // if start is specified increments starting from that bit
-  function increment(x, start=0) {
+  // if start is specified increments starting from that block
+  function _uIncrement(x, start=0) {
     let carry = 1;
     for (let i=start; carry && i < x.n; i++) {
       let total = x.a[i] + 1;
@@ -373,17 +384,18 @@
     return x;
   }
 
-  function addSmall(x, n) {
+  // assumes n is small
+  function _uAddSmall(x, n) {
     let total = x.a[0] + n;
     x.a[0] = total & BASE_MASK;
     if (total >>> BITS_PER_BLOCK) {
-      increment(x, 1);
+      _uIncrement(x, 1);
     }
     return x;
   }
 
   // adds y into x
-  function add2(x, y) {
+  function _uAdd(x, y) {
     _resize(x, Math.max(x.n, y.n));
     let carry = 0;
     for (let i = 0; i < y.n; i++) {
@@ -392,41 +404,22 @@
       carry = total >>> BITS_PER_BLOCK;
     }
     if (carry) {
-      increment(x, y.n);
+      _uIncrement(x, y.n);
     }
     return x;
   }
 
-  // z = x + y
-  // assumes z is not x or y, though should still work
-  function add3(x, y, z) {
-    _resize(z, Math.max(x.n, y.n));
-    let min = Math.min(x.n, y.n);
-    let carry = 0;
-    let i = 0;
-    while (i < min) {
-      let total = x.a[i] + y.a[i] + carry;
-      z.a[i] = total & BASE_MASK;
-      carry = total >>> BITS_PER_BLOCK;
-      i++;
+  function add(x, y) {
+    if (x.sign === y.sign) {
+      _uAdd(x, y);
+    } else {
+        if (_uCompare(x, y) >= 0) {
+          _uSub(x, y);
+        } else {
+          // !!!  
+        }
+        // ... !!! fix sign
     }
-    while (i < x.n) {
-      let total = x.a[i] + carry;
-      z.a[i] = total & BASE_MASK;
-      carry = total >>> BITS_PER_BLOCK;
-      i++;
-    }
-    while (i < y.n) {
-      let total = y.a[i] + carry;
-      z.a[i] = total & BASE_MASK;
-      carry = total >>> BITS_PER_BLOCK;
-      i++;
-    }
-    if (carry) {
-      increment(z, i);
-    }
-    return z;
-  }
 
   // ... signed addition ...
 
@@ -435,6 +428,7 @@
   // subtraction
 
   // unsigned decrement, assumes x > 0
+  // starting from block start
   function _uDecrement(x, start = 0) {
     let borrow = 1;
     let b = 0;
@@ -461,7 +455,8 @@
   // assumes y <= x
   function _uSub(x, y) {
     let borrow = 0;
-    for (let i = 0; i < y.n; i++) {
+    let i = 0;
+    while (i < y.n) {
       let diff = x.a[i] - y.a[i] - borrow;
       if (diff < 0) {
         x.a[i] = diff + BASE;
@@ -470,9 +465,14 @@
         x.a[i] = diff;
         borrow = 0;
       }
+      i++;
     }
     if (borrow) {
-      throw new Error('subtrahend greater than minuend');
+      if (i < x.n) {
+        _uDecrement(x, i);
+      } else {
+        throw new Error('subtrahend greater than minuend');
+      }
     }
     _trim(x);
   }
@@ -703,12 +703,22 @@
 
 
   exports.make = make;
+
+  exports.toSmall = toSmall;
+  exports.toString = toString;
+  
+  exports.copy = copy
+
+  exports.randomize = randomize;
+
+  exports.compare = compare;
+  exports.isZero = isZero;
+  exports.isOne = isOne;
+
   exports.add2 = add2;
   exports.add3 = add3;
   exports.me = modExp;
-  exports.randomize = randomize;
   exports.sub = _uSub;
-  // exports.copy = copy;
 
 
 })((typeof exports === 'undefined') ? this.xuint = {} : exports);
