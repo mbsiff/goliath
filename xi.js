@@ -11,6 +11,8 @@
 
 // "small" refers to regular JS integers that fit within block
 
+// functions name _u... ignore the signs of the numbers and
+// are intended as private
 
 // !!!
 // test that uSub is fixed
@@ -432,7 +434,7 @@
 
   var add2;
   {
-    let copyX = _allocate(DEFAULT_SIZE);
+    let t = _allocate(DEFAULT_SIZE);
     add2 = function (x, y) {
       if (x.sign === y.sign) {
         _uAdd(x, y);  // sign remains
@@ -441,9 +443,9 @@
           _uSub(x, y);
           _setZeroSign(x);
         } else {
-          copy(y, copyX)
-          _uSub(copyX, x)
-          copy(copyX, x)
+          copy(y, t)
+          _uSub(t, x)
+          copy(t, x)
           negate(x);
         }
       }
@@ -543,27 +545,53 @@
 
   var sub2;
   {
-    let copyX = _allocate(DEFAULT_SIZE);
+    let t = _allocate(DEFAULT_SIZE);
     sub2 = function (x, y) {
       if (x.sign === y.sign) {
         if (_uCompare(x, y) >= 0) {
           _uSub(x, y);
           _setZeroSign(x);
         } else {
-          copy(y, copyX);
-          _sub(copyX, x);
+          copy(y, t);
+          _uSub(t, x);
+          copy(t, x);
           negate(x);
         }
       } else {
-        // !!!
-
+        if (_uCompare(x, y) >= 0) {
+          _uAdd(x, y);
+        } else {
+          copy(y, t);
+          _uAdd(t, x);
+          copy(t, x);
+          negate(x);
+        }
       }
       return x;
     }
   }
 
   function sub3(x, y, z) {
-    // !!!
+    if (x.sign === y.sign) {
+      if (_uCompare(x, y) >= 0) {
+        copy(x, z);
+        _uSub(z, y);
+        _setZeroSign(z);
+      } else {
+        copy(y, z);
+        _uSub(z, x);
+        negate(z);
+      }
+    } else {
+      if (_uCompare(x, y) >= 0) {
+        copy(x, z);
+        _uAdd(z, y);
+      } else {
+        copy(y, z);
+        _uAdd(z, x);
+        negate(z);
+      }
+    }
     return z;
   }
 
