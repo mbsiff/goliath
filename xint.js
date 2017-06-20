@@ -78,12 +78,28 @@
     }
   }
 
+  //returns a random k bit number
   function rand(k){
     let x = BB.makeBits(k);
     for (let i = 0; i < k; i++) {
       x.setBit(i, Math.floor(1.5*Math.random()));
     }
+    x.trim();
     return _make(x);
+  }
+
+  //returns a random number in range from a to b, assumes a < b
+  function randRange(a, b){
+    let k = b.countBits();
+    let c = rand(k);
+    if (lt(c, a)){
+      return add(a, c);
+    } else if (gt(c, b)){
+      let diff = sub(b, a);
+      return sub(c, diff);
+    } else {
+      return c;
+    }
   }
 
   function _add(x,y){
@@ -134,14 +150,14 @@
   }
 
   function _blockSub(x, y){
-    let n = Math.max(x.countBlocks(), y.countBlocks());
-    let z = BB.makeBits(n);
+    let n = x.countBlocks();
+    let z = BB.makeBlocks(n);
     let borrow = 0;
     for (let i = 0; i < n; i++) {
         let difference = (x.getBlock(i) - borrow) - y.getBlock(i);
         if (difference < 0) {
             borrow = 1;
-            difference = difference + CEILING;   // 2 since we are using base 2
+            difference = difference + CEILING;
         } else {
             borrow = 0;
         }
@@ -231,6 +247,16 @@
     return y;
   }
 
+  function _shiftRight(x, n){
+    let c = x.countBits() - n;
+    let y = BB.makeBits(c);
+    for (let i = 0; i < c; i++){
+      y.setBit(i, x.getBit(n));
+      n++;
+    }
+    return y;
+  }
+
   function _modex(base, power, modulus){
     let c = ZERO;
     let d = ONE;
@@ -239,7 +265,7 @@
       c = blockMult(c, two);
       d = divmod(blockMult(d, d), modulus).r;
       if (power.getBit(i) === 1){
-        c = blockAdd(c, ONE);
+        c = add(c, ONE);
         d = divmod(blockMult(d, base), modulus).r;
       }
     }
@@ -338,16 +364,24 @@
     if (eq(x, ZERO) || (eq(y, ZERO))){
       return ZERO;
     } else {
-    return _make(_blockMult(x,y));
+      return _make(_blockMult(x,y));
+    }
   }
-}
 
   function divmod(x, y){
     return _divmod(x, y);
   }
 
-  function modex(x, y){
-    return _make(_modex(x, y));
+  function modex(x, y, z){
+    return _make(_modex(x, y, z));
+  }
+
+  function shiftRight(x, n){
+    return _make(_shiftRight(x, n));
+  }
+
+  function shiftLeft(x, n){
+    return _make(_shiftLeft(x, n));
   }
 
   function _compareTo(x, y){
@@ -407,6 +441,10 @@
   exports.divmod = divmod;
   exports.modex = modex;
   exports.compareTo = compareTo;
+  exports.shiftLeft = shiftLeft;
+  exports.shiftRight = shiftRight;
+  exports.rand = rand;
+  exports.randRange = randRange;
   exports.lt = lt;
   exports.gt = gt;
   exports.leq = leq;

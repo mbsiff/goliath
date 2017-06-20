@@ -3,75 +3,147 @@
 // pollard rho
 // euclidean algorithm
 // smallest factor
-// Miller Rabin primality testing
+// Miller RaXint primality testing
 
 (function(exports){
   'use strict';
   var BB = require('./bitBlocks');
-  var Bin = require('./binary');
+  var Xint = require('./xint');
 
   //takes two GNs a and b, returns their greatest common divisor;
-  function euclid(a, b){
-    let zero = Bin.tenToBits(0);
-    if (Bin.isEqual(b, zero)){
+  function gcd(a, b){
+
+    if (Xint.eq(b, Xint.ZERO)){
       return a;
     } else {
-      let c = Bin.divmod(a, b).r;
-      return euclid(b, c);
+      let c = Xint.divmod(a, b).r;
+      return (gcd(b, c));
     }
   }
 
-  function pollard(n){
-    let i = 1;
-    let num = Bin.stringToBits(n);
-    let zero = Bin.tenToBits(0);
-    let one = Bin.tenToBits(1);
-    let max = Bin.dec(num);
-    let x = Bin.tenToBits(3);
-    let y = x;
-    let k = 2;
-    var c;
-    while (true) {
-      i++;
-      if (Bin.isEqual(x, zero)){
-        x = max;
-      } else {
-        let a = Bin.pow(x, 2);
-        let b = Bin.dec(a);
-        x = Bin.divmod(b, num).r;
-      }
-      if (Bin.lt(x, y)){
-         c = Bin.sub(y, x);
-      } else {
-         c = Bin.sub(x, y);
-      }
-      let d = euclid(c, num);
-      //if (!Bin.isEqual(d, one) && !Bin.isEqual(d, num)){
-        console.log(Bin.bitsToString(d));
-      //}
-      if (i === k) {
-        y = x;
-        k = 2 * k;
+  // function pollard(n){
+  //   let i = 1;
+  //   let num = Xint.stringToBits(n);
+  //   let zero = Xint.ZERO;
+  //   let one = Xint.ONE;
+  //   let max = Xint.dec(num);
+  //   let x = Xint.tenToBits(3);
+  //   let y = x;
+  //   let k = 2;
+  //   var c;
+  //   while (true) {
+  //     i++;
+  //     if (Xint.isEqual(x, zero)){
+  //       x = max;
+  //     } else {
+  //       let a = Xint.pow(x, 2);
+  //       let b = Xint.dec(a);
+  //       x = Xint.divmod(b, num).r;
+  //     }
+  //     if (Xint.lt(x, y)){
+  //        c = Xint.sub(y, x);
+  //     } else {
+  //        c = Xint.sub(x, y);
+  //     }
+  //     let d = euclid(c, num);
+  //     //if (!Xint.isEqual(d, one) && !Xint.isEqual(d, num)){
+  //       console.log(Xint.bitsToString(d));
+  //     //}
+  //     if (i === k) {
+  //       y = x;
+  //       k = 2 * k;
+  //     }
+  //   }
+  // }
+
+  function polP(n){
+    let a = Xint.make(2);
+    let b = 16;
+    for (let j = 2; j < b; j++){
+      a = Xint.modex(a, Xint.make(j), n);
+      let b = Xint.sub(a, Xint.ONE)
+      let d = gcd(b, n);
+      if (Xint.lt(d, n) && Xint.gt(d, Xint.ONE)){
+        return d;
       }
     }
+    return "Failed to Factor N";
   }
 
   //pseudoprimality test
   function pseudoprimality(n){
-    let i = Bin.tenToBits(2);
-    let one = Bin.tenToBits(1);
-    let exp = Bin.sub(n, one);
-    if (Bin.isEqual(Bin.modex(i, exp, n), one)){
+    let i = Xint.make(2);
+    let one = Xint.ONE;
+    let exp = Xint.sub(n, one);
+    if (Xint.eq(Xint.modex(i, exp, n), one)){
       return true;
     } else {
       return false;
     }
   }
 
+  function primeFacPolP(n){
+    let factors = [];
+    let x = n;
+    while (Xint.gt(x, Xint.ONE)){
+      let a = polP(x);
+      if (a === "Failed to Factor N"){
+        if (pseudoprimality(a)){
+          factors.push(a.toString());
+        }
+        return factors;
+      } else if (Xint.gt(a, Xint.ONE)){
+        factors.push(a.toString());
+        x = Xint.divmod(n, a).q;
+      }
+    return factors;
+    }
+  }
 
-  exports.euclid = euclid;
-  exports.pollard = pollard;
+  function expressWithTwos(n){
+    r = {};
+    m = Xint.sub(n, Xint.ONE);
+    i = m.countBits() - 1;
+    let j = 0;
+    while (m.getBit(i) === 0){
+      m = Xint.shiftRight(m, 1);
+      j++
+      i --;
+    }
+    r.j = j;
+    r.q = m;
+    return r;
+  }
+
+  function millerRabin(n){
+    let two = Xint.make(2);
+    let mOne = Xint.sub(n, Xint.ONE);
+    let a = Xint.randRange(Xint.ZERO, n);
+    let g = gcd(a, n);
+    if (Xint.eq(Xint.divmod(n, two).r, Xint.ZERO)   ||
+        (Xint.gt(g, Xint.ZERO) && Xint.lt(g, n))){
+      return "COMPOSITE";
+    }
+    k = expressWithTwos(n);
+    a = Xint.pow(a, k.q);
+    if (Xint.eq(Xint.divmod(a, n).r, Xint.ONE)){
+      return "TEST FAILS";
+    }
+    for (let i = 0; i < k.j; i++){
+      if (Xint.eq(Xint.divmod(a, n).r, mOne)) {
+        return "TEST FAILS";
+      } else {
+        a = Xint.divmod(Xint.pow(a, two), n).r;
+      }
+    }
+    return "COMPOSITE";
+  }
+
+  exports.gcd = gcd;
+  exports.polP = polP;
+  exports.primeFac = primeFacPolP;
+  // exports.pollard = pollard;
   exports.pseudoprimality = pseudoprimality;
   //exports.smallFac = smallFac;
-  //exports.millerRabin = millerRabin;
+  exports.millerRabin = millerRabin;
 }) ((typeof exports === 'undefined') ? this.num = {} : exports);

@@ -48,7 +48,8 @@
       if (i < blocksUsed) {
         return a[i];
       } else {
-        throw new RangeError('block index ' + i + ' is out of bounds');
+        //throw new RangeError('block index ' + i + ' is out of bounds');
+        return 0;
       }
     };
     obj.setBit = function(i, value=1) {

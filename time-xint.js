@@ -50,6 +50,7 @@ function timerAdd(bitSize, repetitions, sampleSize){
   console.log(bitSize, tbit/sampleSize, tblock/sampleSize);
 }
 
+
 function timerMult(bitSize, repetitions, sampleSize){
   let tbit = tblock = 0;
   for (let j = 0; j < sampleSize; j++){
@@ -75,6 +76,23 @@ function timerMult(bitSize, repetitions, sampleSize){
   console.log(bitSize, tbit/sampleSize, tblock/sampleSize);
 }
 
+function timerModex(bitSize, repetitions, sampleSize){
+  let tbit = tblock = 0;
+  for (let j = 0; j < sampleSize; j++){
+    let timeBit = timeBlock = 0;
+    let x = Xint.rand(bitSize);
+    let y = Xint.rand(bitSize);
+    let z = Xint.rand(bitSize);
+    let t0 = Date.now();
+    for(let i = 0; i < repetitions; i++){
+      let a = Xint.modex(x, y, z);
+    }
+    timeBlock += (Date.now() - t0);
+    tblock += timeBlock / repetitions;
+  }
+  console.log(bitSize, tblock/sampleSize);
+}
+
 for (let i = 1000; i< 3000; i = i + 200){
-  timerMult(i, 20, 20);
+  timerModex(i, 20, 20);
 }
