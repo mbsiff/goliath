@@ -3,25 +3,6 @@
 // mutable!
 // little endian
 
-// ignores sign for now !!!
-
-// each large integer is a sequence of 1 or more blocks
-// BITS_PER_BLOCK are powers of 2
-// in this case 16
-
-// "small" refers to regular JS integers that fit within block
-
-// functions name _u... ignore the signs of the numbers and
-// are intended as private
-
-// !!!
-// test that uSub is fixed
-// make sure various small arguments work properly...
-// then add/fix signs
-// set exports
-// more thorough testing...
-
-
 (function(exports){
   'use strict';
 
@@ -34,30 +15,6 @@
   const BASE = SHORT_LIMIT;
 
   const DEFAULT_SIZE = 1000;
-
-  // -----------------------------------------------------------
-  // sieve of Eratostheses to generate array of small primes
-  function _sieve(n) {
-    let primes = [2];
-    let sieve = new Uint8Array(n);
-    for (let i = 4; i < sieve.length; i+=2) {
-      sieve[i] = 1;
-    }
-    let nextPrime = 3;
-    while (nextPrime < sieve.length) {
-      primes.push(nextPrime);
-      for (let i = nextPrime*2; i < sieve.length; i += nextPrime) {
-        sieve[i] = 1;
-      }
-      nextPrime += 2;
-      while (sieve[nextPrime] && nextPrime < sieve.length) {
-        nextPrime += 2;
-      }
-    }
-    return new Uint16Array(primes);
-  }
-  const _PRIMES = _sieve(SHORT_LIMIT);
-
 
   // -----------------------------------------------------------
   // allocate and initialize new numbers
@@ -123,8 +80,8 @@
       digits = digits.slice(1);
     }
     for (let digit of digits) {
-      multSmall(x, 10);  // !!!
-      addSmall(x, digit.charCodeAt(0) - 48);   // 48 is ASCII for '0' !!!
+      mulSmall(x, 10);
+      _uAddSmall(x, digit.charCodeAt(0) - 48);   // 48 is ASCII for '0'
     }
     return x;
   }
@@ -149,8 +106,8 @@
     let nBlocks = Math.ceil(hex.length * 4 / BITS_PER_BLOCK);
     let x = _allocate(nBlocks);
     for (let h of hex) {
-      multSmall(x, 16);
-      addSmall(x, parseInt(h, 16));
+      mulSmall(x, 16);
+      _uAddSmall(x, parseInt(h, 16));
     }
     return x;
   }
@@ -199,7 +156,7 @@
       copy(x, t);
       let s = '';
       while (!isZero(t)) {
-        let d = divModSmall(t, 10);
+        let d = divSmall(t, 10);
         s = d + s;
       }
       return s;
@@ -221,6 +178,7 @@
     if (newSize > x.a.length) {
       _extend(x, newSize);
     }
+    return x;
   }
 
   function _extend(x, newSize) {
@@ -304,6 +262,7 @@
         _setBit(x, i, 1);
       }
     }
+    _trim(x);
     return x;
   }
 
@@ -316,7 +275,7 @@
 
   var isSmall = x => (x.n === 1);
 
-  var isEqSmall = (x, n) => (x.n === 1) && (n === x.sign * x.a[0]);
+  var eqSmall = (x, n) => (x.n === 1) && (n === x.sign * x.a[0]);
 
   function _uCompare(x, y) {
     let n = x.n;
@@ -338,6 +297,14 @@
       return x.sign;
     }
   }
+
+  let eq = (x, y) => compare(x, y) === 0;
+  let neq = (x, y) => compare(x, y) !== 0;
+  let gt = (x, y) => compare(x, y) > 0;
+  let lt = (x, y) => compare(x, y) < 0;
+  let gte = (x, y) => compare(x, y) >= 0;
+  let lte = (x, y) => compare(x, y) <= 0;
+
 
   // -----------------------------------------------------------
   // shifting
@@ -408,14 +375,14 @@
   }
 
   // assumes n is small, n >= 0
-  // function _uAddSmall(x, n) {
-  //   let total = x.a[0] + n;
-  //   x.a[0] = total & BASE_MASK;
-  //   if (total >>> BITS_PER_BLOCK) {
-  //     _uIncrement(x, 1);
-  //   }
-  //   return x;
-  // }
+  function _uAddSmall(x, n) {
+    let total = x.a[0] + n;
+    x.a[0] = total & BASE_MASK;
+    if (total >>> BITS_PER_BLOCK) {
+      _uIncrement(x, 1);
+    }
+    return x;
+  }
 
   // adds y into x
   function _uAdd(x, y) {
@@ -443,14 +410,14 @@
           _uSub(x, y);
           _setZeroSign(x);
         } else {
-          copy(y, t)
-          _uSub(t, x)
-          copy(t, x)
+          copy(y, t);
+          _uSub(t, x);
+          copy(t, x);
           negate(x);
         }
       }
       return x;
-    }
+    };
   }
 
   function add3(x, y, z) {
@@ -463,8 +430,8 @@
         _uSub(z, y);
         _setZeroSign(z);
       } else {
-        copy(y, z)  // z's sign is y's sign
-        _uSub(z, x)
+        copy(y, z);  // z's sign is y's sign
+        _uSub(z, x);
       }
     }
     return z;
@@ -568,9 +535,10 @@
         }
       }
       return x;
-    }
+    };
   }
 
+  // this currently does NOT work if z is y
   function sub3(x, y, z) {
     if (x.sign === y.sign) {
       if (_uCompare(x, y) >= 0) {
@@ -646,7 +614,15 @@
     return z;
   }
 
-
+  function mul(x, y, z) {
+    if (isZero(x) || isZero(y)) {
+      _setToSmall(z, 0);
+    } else {
+      _uMul(x, y, z);
+      z.sign = x.sign * y.sign;
+    }
+    return z;
+  }
 
 
   // -----------------------------------------------------------
@@ -656,7 +632,8 @@
   // writes quotient into y
   // if y not specified, quotient written into x
   // assumes n > 0
-  function divModSmall(x, n, y) {
+  // buggy if y specified but not cleared???
+  function divSmall(x, n, y) {
     y = y ? _resize(y, x.n) : x;
     let rem = 0;
     for (let i = x.n - 1; i >= 0; i--) {
@@ -701,25 +678,32 @@
     }
   }
 
-  // ...
+  function div(dividend, divisor, q, r) {
+    if (!isZero(divisor)) {
+      if (isZero(dividend)) {
+        _setToSmall(q, 0);
+        _setToSmall(r, 0);
+      } else {
+        _uDiv(dividend, divisor, q, r);
+        q.sign = dividend.sign * divisor.sign;
+        _setZeroSign(q);
+        r.sign = divisor.sign;
+        _setZeroSign(r);
+        if (dividend.sign !== divisor.sign && !isZero(r)) {
+          decrement(q);
+          sub2(r, divisor);
+          negate(r);
+        }
+      }
+    } else {
+      throw new Error('division by zero');
+    }
+  }
+
 
   // -----------------------------------------------------------
   // modular exponentiation
 
-  // mod exp via repeated squaring on small numbers
-  // not sure if this version is needed any more
-  // function _modExpSmall(b, e, m) {
-  //   let y = 1;
-  //   let pow = b;
-  //   while (e) {
-  //     if (e & 1) {
-  //       y = (y * pow) % m;
-  //     }
-  //     pow = (pow * pow) % m;
-  //     e >>>= 1;
-  //   }
-  //   return y;
-  // }
 
   // compute b^e mod m into target
   // assumes unsigned!
@@ -735,10 +719,10 @@
         let x = e.a[i];
         for (let j = 0; j < BITS_PER_BLOCK; j++) {
           if (x & 1) {
-            _uMult(target, pow, t);
+            _uMul(target, pow, t);
             _uDiv(t, m, scratch, target);
           }
-          _uMult(pow, pow, t);
+          _uMul(pow, pow, t);
           _uDiv(t, m, scratch, pow);
           x >>>= 1;
         }
@@ -746,10 +730,10 @@
       let x = e.a[e.n-1];
       while (x) {
         if (x & 1) {
-          _uMult(target, pow, t);
+          _uMul(target, pow, t);
           _uDiv(t, m, scratch, target);
         }
-        _uMult(pow, pow, t);
+        _uMul(pow, pow, t);
         _uDiv(t, m, scratch, pow);
         x >>>= 1;
       }
@@ -757,73 +741,13 @@
     };
   }
 
-  // -----------------------------------------------------------
-  // number theory
-
-  // function findSmallFactor(x) {
-  //   for (let p of PRIMES) {
-  //     if (divModSmall(x, p) === 0) {
-  //       return p;
-  //     }
-  //   }
-  //   return null;
-  // }
-
-
-
-  // Miller-Rabin test. iters is the number of repetitions; if it
-  // returns True then n is prime with probability at least 1/2^iters;
-  // if False; then n is definitely composite.
-  // assumes n > 2
-  // function millerRabin(n, iters=4) {
-  //   if (getBit(n, 0) === 0) {
-  //     return false;
-  //   }
-  //   let n1 = objPool.get();
-  //   let d = objPool.get();
-  //   let base = objPool.get();
-  //   let pow = objPool.get();
-  //   let exp = objPool.get();
-  //   let t = objPool.get();
-  //   let scratch = objPool.get();
-  //   copy(n, n1);
-  //   decrement(n1);
-  //   copy(n1, d);
-  //   while (getBit(d, 0) === 0) {
-  //     shiftRight(d, 1);
-  //   }
-  //   let couldBePrime = true;
-  //   for (let i = 0; couldBePrime && i < iters; i++) {
-  //     let rp = PRIMES[Math.floor(Math.random() * PRIMES.length)];
-  //     reset(base, rp, true);
-  //     copy(d, exp);
-  //     modExp(base, exp, n, pow);
-  //     // might be possible to squeeze a little more out of this...
-  //     while (!isOne(pow) && compareTo(pow, n1) && compareTo(exp, n1)) {
-  //       mult(pow, pow, t);
-  //       divmod(t, n, scratch, pow);
-  //       //shiftLeft(exp, 1);
-  //       exp.shiftLeft(1);
-  //     }
-  //     couldBePrime = getBit(exp, 0) === 1 || compareTo(pow, n1) === 0;
-  //   }
-  //   scratch = objPool.get(scratch);
-  //   t = objPool.unget(t);
-  //   exp = objPool.get(exp);
-  //   pow = objPool.get(pow);
-  //   base = objPool.get(base);
-  //   d = objPool.unget(d);
-  //   n1 = objPool.unget(n1);
-  //   return couldBePrime;
-  // }
-
 
   exports.make = make;
 
   exports.toSmall = toSmall;
   exports.toString = toString;
 
-  exports.copy = copy
+  exports.copy = copy;
 
   exports.randomize = randomize;
 
@@ -831,7 +755,13 @@
   exports.isZero = isZero;
   exports.isOne = isOne;
   exports.isSmall = isSmall;
-  exports.isEqSmall = isEqSmall;
+  exports.eqSmall = eqSmall;
+  exports.eq = eq;
+  exports.neq = neq;
+  exports.gt = gt;
+  exports.lt = lt;
+  exports.gte = gte;
+  exports.lte = lte;
 
   exports.increment = increment;
   exports.add2 = add2;
@@ -843,7 +773,14 @@
   exports.negate = negate;
 
   exports.mul = mul;
+  exports.mulSmall = mulSmall;
 
   exports.div = div;
+  exports.divSmall = divSmall;
+
+  exports.shiftLeft = shiftLeft;
+  exports.shiftRight = shiftRight;
+
+  exports.modExp = modExp;
 
 })((typeof exports === 'undefined') ? this.x = {} : exports);

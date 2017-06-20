@@ -3,7 +3,7 @@ let Xi = require('./xi');
 
 const K = 100;
 const REPS = 100;
-const RANGE_SIZE = 30000;
+const RANGE_SIZE = 15000;
 
 
 // a^2 - b&2 = (a-b)*(a+b)
@@ -46,33 +46,68 @@ function testDivision(smA, smB, big) {
   let a = Xi.make();
   Xi.copy(big, a);
   Xi.mulSmall(a, smA);
-  // 1. ....
+  let b = Xi.make();
   Xi.copy(big, b);
   Xi.mulSmall(b, smB);
+  // 1. if    smA = smB * smQ + smR
+  //    then  BIG*smA = BIG*smB*smQ + BIG*smR
   let q = Xi.make();
   let r = Xi.make();
   Xi.div(a, b, q, r);
   assert.ok(Xi.eqSmall(q, smQ),
-    'division fails on quotient for: ' + a + ' / ' + b);
-  assert.ok(Xi.eqSmall(r, smR),
-      'division fails on remainder for: ' + a + ' % ' + b);
-  // 2...
-  let qCheck = Xi.make();
-  Xi.copy(big, qCheck);
-  Xi.mulSmall(qCheck, smQ);
-  let rCheck = Xi.divSmall(a, smB, q);
-  assert.ok(Xi.eq(qCheck, q),
-    'division fails on quotient for: ' + a + ' / ' + smB);
-  assert.ok(Xi.eqSmall(rCheck, r),
-      'division fails on remainder for: ' + a + ' % ' + smB);
+    'division fails on quotient for: ' +
+      [smA, smB, smQ, smR, big, a, b, q, r].join('\n'));
+
+  let rCheck = Xi.make();
+  Xi.copy(big, rCheck);
+  Xi.mulSmall(rCheck, smR);
+  assert.ok(Xi.eq(r, rCheck),
+     'division fails on remainder for: ' +
+     [smA, smB, smQ, smR, big, a, b, q, r].join('\n'));
+  // 2. BIG*smA % smB = (BIG%smB * smA%smB) % smB
+  //          a % smB = ((BIG%smB) * smR) % smB
+  let t = Xi.make();
+  let r0 = Xi.divSmall(a, smB, t);
+  let r1 = Xi.divSmall(big, smB, t);
+  let r2 = (r1 * smR) % smB;
+  assert.ok(r0 === r2,
+    'divSmall remainder fail on ' +
+    [smA, smB, smQ, smR, big, a, b, r0, r1, r2].join('\n'));
 }
 
 let big = Xi.make();
 for (let i = 0; i < REPS; i++) {
   Xi.randomize(big, K);
-  let smA = Math.floor(RANGE_SIZE * Math.random()) + 1;
+  let smA = Math.floor(RANGE_SIZE * Math.random()) + 1001;
   let smB = Math.floor(RANGE_SIZE * Math.random()) + 1;
   testDivision(smA, smB, big);
+}
+
+
+// signed division: tests that if divmod(a,b)=(q,r)
+// then a = qb + r
+function testDivMul(a, b) {
+  let q = Xi.make();
+  let r = Xi.make();
+  let t = Xi.make();
+  Xi.div(a, b, q, r);
+  Xi.mul(b, q, t);
+  Xi.add2(t, r);
+  // console.log(a, t);
+  // console.log('trying a = bq + r on:\n' + [a, b, q, r, t].join('\n'));
+  assert.ok(Xi.eq(a, t),
+    'a = bq + r fails for\n' + [a, b, q, r, t].join('\n'));
+}
+
+for (let i = 0; i < REPS; i++) {
+  Xi.randomize(a, K);
+  testDivMul(a, b);
+  Xi.negate(a);
+  testDivMul(a, b);
+  Xi.negate(b);
+  testDivMul(a, b);
+  Xi.negate(a);
+  testDivMul(a, b);
 }
 
 
@@ -86,7 +121,8 @@ function testFermat(n, expected) {
   Xi.randomize(r, K);
   let z = Xi.make();
   Xi.modExp(r, n1, n, z);
-  let smZ = Xi.toShort(z);
+  let smZ = Xi.toSmall(z);
+  // console.log('Fermat testing ' + [r, n, n1, z].join(',  '));
   assert.ok(expected && smZ === 1 || !expected && smZ !== 1,
     'Fermat test failed on ' + [r, n, n1, z].join(',  '));
 }
@@ -119,10 +155,12 @@ for (let s of primes) {
   let n = Xi.make(s);
   testFermat(n, true);
 }
-for (let s of carmichaels) {
-  let n = Xi.make(s);
-  testFermat(n, true);
-}
+// Carmichael test won't work as is
+// because random base might not be relatively prime to Carmichael #
+// for (let s of carmichaels) {
+//   let n = Xi.make(s);
+//   testFermat(n, true);
+// }
 let semiPrime = Xi.make();
 for (let s of primes) {
   let a = Xi.make(s);
