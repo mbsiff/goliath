@@ -3,6 +3,8 @@
 // mutable!
 // little endian
 
+let assert = require('assert');
+
 (function(exports){
   'use strict';
 
@@ -403,6 +405,7 @@
   {
     let t = _allocate(DEFAULT_SIZE);
     add2 = function (x, y) {
+      assert (x !== y);
       if (x.sign === y.sign) {
         _uAdd(x, y);  // sign remains
       } else {
@@ -421,6 +424,7 @@
   }
 
   function add3(x, y, z) {
+    assert (x !== z && y !== z);
     if (x.sign === y.sign) {
       copy(x, z);  // z's sign is x's
       _uAdd(z, y);
@@ -514,6 +518,7 @@
   {
     let t = _allocate(DEFAULT_SIZE);
     sub2 = function (x, y) {
+      assert(x !== y);
       if (x.sign === y.sign) {
         if (_uCompare(x, y) >= 0) {
           _uSub(x, y);
@@ -540,6 +545,7 @@
 
   // this currently does NOT work if z is y
   function sub3(x, y, z) {
+    assert(x !== z && y !== z);
     if (x.sign === y.sign) {
       if (_uCompare(x, y) >= 0) {
         copy(x, z);
@@ -618,6 +624,7 @@
     if (isZero(x) || isZero(y)) {
       _setToSmall(z, 0);
     } else {
+      assert (x !== z && y !== z);
       _uMul(x, y, z);
       z.sign = x.sign * y.sign;
     }
@@ -684,6 +691,8 @@
         _setToSmall(q, 0);
         _setToSmall(r, 0);
       } else {
+        assert (dividend !== q && divisor !== q &&
+          dividend !== r && divisor !== r);
         _uDiv(dividend, divisor, q, r);
         q.sign = dividend.sign * divisor.sign;
         _setZeroSign(q);
