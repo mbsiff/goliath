@@ -172,6 +172,7 @@ let assert = require('assert');
   function copy(src, dst) {
     _resize(dst, src.n);
     dst.a.set(src.a.subarray(0, src.n));
+    dst.sign = src.sign;
     return dst;
   }
 
