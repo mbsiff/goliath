@@ -156,11 +156,7 @@
     Xi.div(x3, N, t0, t1);      // t1 = x3 % N;
     Xi.div(y3, N, t0, t2);      // t2 = y3 % N;
 
-    x3 = t1;
-    y3 = t2;
-
-    let R = Xl.makePoint(x3, y3);
-    return R;
+    return Xl.makePoint(t1, t2);
   }
 
   //given an elliptic curve over a finite field and a point on the curve P,
