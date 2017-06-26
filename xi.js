@@ -773,6 +773,8 @@ let assert = require('assert');
   exports.gte = gte;
   exports.lte = lte;
 
+  exports.getBit = _getBit;
+
   exports.increment = increment;
   exports.add2 = add2;
   exports.add3 = add3;

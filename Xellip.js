@@ -86,16 +86,16 @@
 
   function distinctPoints(P, Q, N){
     if (P.point === Infinity && Q.point === Infinity){
-      return 0;
+      return -1;
     } else if (P.point === Infinity || Q.point === Infinity){
-      return 1;
+      return 0;
     } else {
       let x1 = P.point.x;
       let x2 = Q.point.x;
       let y1 = P.point.y;
       let y2 = Q.point.y;
       if (Xi.eq(x1, x2) && Xi.eq(y1, y2)){
-        return 0
+        return 1
       } else if (Xi.eq(x1, x2)){
         if (N === undefined && Xi.eq(y1, Xi.negate(y2))){
           return -1
@@ -124,25 +124,32 @@
     let x3 = Xi.make();
     let y3 = Xi.make();
     let lambda = Xi.make();
-    let d = Xl.distinct(P, Q, N);
+    let d = distinctPoints(P, Q, N);
     let t0 = Xi.make();
     let t1 = Xi.make();
     let t2 = Xi.make();
-    if (d === -1 || d === 2){
+    if (d === -1){
         return Xl.O;
     } else if (d === 0){
+      if (P.point === Infinity){
+        return Q;
+      } else {
+        return P;
+      }
+    } else if (d === 1){
         Xi.mul(x1, x1, t0);     // t0 = x1^2;
         Xi.mulSmall(t0, 3, t1)  // t1 = 3(x1^2); t0 now free;
         Xi.add3(t1, A, t0);     // t0 = 3(x1^2) + A; t1 now free;
         Xi.mulSmall(y1, 2, t1); // t1 = 2y1;
-        inv = Xl.extended(t1, N).inverse; // inv = (2y1)^-1; t1 now free;
+        let inv = exEuc(t1, N).inverse; // inv = (2y1)^-1; t1 now free;
         Xi.mul(t0, inv, t1);    // t1 = (3(x1^2) + A) * (2y1)^-1; t0 now free;
         Xi.div(t1, N, t0, t2);  // t2 = ((3(x1^2) + A) * (2y1)^-1) % N;
         lambda = t2;            // all variables freed;
     } else {
+        console.log(P, Q);
         Xi.sub3(y2, y1, t0);    // t0 = y2 - y1;
         Xi.sub3(x2, x1, t1);    // t1 = x2 - x1;
-        inv = Xl.extended(t1, N).inverse; // inv = (x2 - x1)^-1; t1 now free;
+        let inv = exEuc(t1, N).inverse; // inv = (x2 - x1)^-1; t1 now free;
         Xi.mul(t0, inv, t1);    // t1 = (y2 - y1)*((x2 - x1)^-1); t0 now free;
         Xi.div(t1, N, t0, t2);  // t2 = (y2 - y1)*((x2 - x1)^-1) % N;
         lambda = t2;            // all variables freed;
@@ -156,23 +163,27 @@
     Xi.div(x3, N, t0, t1);      // t1 = x3 % N;
     Xi.div(y3, N, t0, t2);      // t2 = y3 % N;
 
-    return Xl.makePoint(t1, t2);
+    return makePoint(t1, t2);
   }
 
   //given an elliptic curve over a finite field and a point on the curve P,
   //quickly compues the value of nP for some constant multiple n by way of
   //repeated doubling and addition.
-  function dubAdd(P, j, A, modulus){
+  function dubAdd(P, j, A, N){
     let Q = P;
     let R = O;
-    while (j > 0){
-      if (j % 2 === 1){
-        R = modAdd(R, Q, A, modulus);
+    let t0 = Xi.make();
+    while (!Xi.isZero(j)){
+      let x = Xi.getBit(j, 0);
+      if (x === 1){
+        R = modAdd(R, Q, A, N);
       }
-      Q = modAdd(Q, Q, A, modulus);
-      j = Math.floor(j / 2);
+      Q = modAdd(Q, Q, A, N);
+      Xi.copy(j, t0)
+      Xi.shiftRight(j, 1, t0);
+      j = t0;
     }
-    return R;
+    return Q;
   }
 
   function lenstra(n, bound){
